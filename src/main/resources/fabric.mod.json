@@ -1,0 +1,40 @@
+{
+	"schemaVersion": 1,
+	"id": "descent",
+	"version": "${version}",
+	"name": "Descent",
+	"description": "Descend into the depths to find treasure and fame!",
+	"authors": [
+		"skycatminepokie"
+	],
+	"contact": {
+		"sources": "https://github.com/skycatminepokie/decsent"
+	},
+	"license": "SBELv2",
+	"icon": "assets/descent/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.skycatdev.descent.Descent"
+		],
+		"client": [
+			"com.skycatdev.descent.DescentClient"
+		],
+		"fabric-datagen": [
+			"com.skycatdev.descent.DescentDataGenerator"
+		]
+	},
+	"mixins": [
+		"descent.mixins.json",
+		{
+			"config": "descent.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.16.14",
+		"minecraft": "1.21.5",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
