@@ -1,14 +1,13 @@
 package com.skycatdev.descent;
 
 import com.skycatdev.descent.config.DescentConfig;
-import net.minecraft.block.Blocks;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
+import net.minecraft.world.biome.BiomeKeys;
+import net.minecraft.world.gen.chunk.ChunkGenerator;
 import xyz.nucleoid.fantasy.RuntimeWorldConfig;
-import xyz.nucleoid.map_templates.MapTemplate;
 import xyz.nucleoid.plasmid.api.game.GameOpenContext;
 import xyz.nucleoid.plasmid.api.game.GameOpenProcedure;
 import xyz.nucleoid.plasmid.api.game.GameSpace;
@@ -17,7 +16,6 @@ import xyz.nucleoid.plasmid.api.game.player.JoinAcceptor;
 import xyz.nucleoid.plasmid.api.game.player.JoinAcceptorResult;
 import xyz.nucleoid.plasmid.api.game.player.JoinOffer;
 import xyz.nucleoid.plasmid.api.game.rule.GameRuleType;
-import xyz.nucleoid.plasmid.api.game.world.generator.TemplateChunkGenerator;
 
 public class DescentGame {
     private final DescentConfig config;
@@ -32,11 +30,8 @@ public class DescentGame {
 
     public static GameOpenProcedure open(GameOpenContext<DescentConfig> context) {
         DescentConfig config = context.config();
-
-        MapTemplate template = MapTemplate.createEmpty();
-        template.setBlockState(new BlockPos(0, 64, 0), Blocks.STONE.getDefaultState());
-
-        TemplateChunkGenerator generator = new TemplateChunkGenerator(context.server(), template);
+        //noinspection OptionalGetWithoutIsPresent
+        ChunkGenerator generator = new DungeonChunkGenerator(context.server().getRegistryManager().getOptionalEntry(BiomeKeys.PLAINS).get());
 
         RuntimeWorldConfig worldConfig = new RuntimeWorldConfig()
                 .setGenerator(generator)
