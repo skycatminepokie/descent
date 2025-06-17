@@ -1,13 +1,15 @@
 package com.skycatdev.descent;
 
 import com.skycatdev.descent.config.DescentConfig;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
-import net.minecraft.world.biome.BiomeKeys;
-import net.minecraft.world.gen.chunk.ChunkGenerator;
 import xyz.nucleoid.fantasy.RuntimeWorldConfig;
+import xyz.nucleoid.map_templates.MapTemplate;
+import xyz.nucleoid.map_templates.MapTemplateSerializer;
 import xyz.nucleoid.plasmid.api.game.GameOpenContext;
 import xyz.nucleoid.plasmid.api.game.GameOpenProcedure;
 import xyz.nucleoid.plasmid.api.game.GameSpace;
@@ -16,6 +18,10 @@ import xyz.nucleoid.plasmid.api.game.player.JoinAcceptor;
 import xyz.nucleoid.plasmid.api.game.player.JoinAcceptorResult;
 import xyz.nucleoid.plasmid.api.game.player.JoinOffer;
 import xyz.nucleoid.plasmid.api.game.rule.GameRuleType;
+import xyz.nucleoid.plasmid.api.game.world.generator.TemplateChunkGenerator;
+
+import java.io.IOException;
+import java.util.Collection;
 
 public class DescentGame {
     private final DescentConfig config;
@@ -30,11 +36,9 @@ public class DescentGame {
 
     public static GameOpenProcedure open(GameOpenContext<DescentConfig> context) {
         DescentConfig config = context.config();
-        //noinspection OptionalGetWithoutIsPresent
-        ChunkGenerator generator = new DungeonChunkGenerator(context.server().getRegistryManager().getOptionalEntry(BiomeKeys.PLAINS).get());
 
         RuntimeWorldConfig worldConfig = new RuntimeWorldConfig()
-                .setGenerator(generator)
+                .setGenerator(new TemplateChunkGenerator(context.server(), buildMapFromIds(context.server(), context.config().rooms())))
                 .setTimeOfDay(6000);
 
         return context.openWithWorld(worldConfig, (activity, world) -> {
@@ -55,4 +59,20 @@ public class DescentGame {
         return acceptor.teleport(world, new Vec3d(0, 65, 0));
     }
 
+    private static MapTemplate buildMapFromIds(MinecraftServer server, Collection<Identifier> templates) {
+        // Collect all templates
+        return buildMapFromTemplates(server, templates.stream()
+                .map(id -> {
+                    try {
+                        return MapTemplateSerializer.loadFromResource(server, id);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e); // TODO: Maybe loudly fail instead of crashing
+                    }
+                })
+                .toList());
+    }
+
+    private static MapTemplate buildMapFromTemplates(MinecraftServer server, Collection<MapTemplate> templates) {
+        return null; // TODO
+    }
 }
