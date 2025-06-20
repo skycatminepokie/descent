@@ -10,7 +10,7 @@
 	"contact": {
 		"sources": "https://github.com/skycatminepokie/decsent"
 	},
-	"license": "SBELv2",
+	"license": "MIT",
 	"icon": "assets/descent/icon.png",
 	"environment": "*",
 	"entrypoints": {
