@@ -99,19 +99,11 @@ public class DungeonPiece {
         return new DungeonPiece(bounds, openings, template, transform);
     }
 
-    public static final class Opening {
-        private final BlockBounds bounds;
-        private final Direction direction;
-
+    public record Opening(BlockBounds bounds, Direction direction) {
         /**
          * @param bounds    The bounds of the opening.
-         * @param direction The direction in which another piece could be placed.
+         * @param templateBounds The bounds of the template this is placed in.
          */
-        public Opening(BlockBounds bounds, Direction direction) {
-            this.bounds = bounds;
-            this.direction = direction;
-        }
-
         public Opening(BlockBounds bounds, BlockBounds templateBounds) {
             this(bounds, dirFromBounds(bounds, templateBounds));
         }
@@ -147,35 +139,6 @@ public class DungeonPiece {
                         opening.min().getZ() == map.min().getZ() ? Direction.AxisDirection.NEGATIVE : Direction.AxisDirection.POSITIVE);
             }
             throw new IllegalArgumentException("At least one side of an opening must be 1 block thick and flush with the map's wall.");
-        }
-
-        public BlockBounds bounds() {
-            return bounds;
-        }
-
-        public Direction direction() {
-            return direction;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == this) return true;
-            if (obj == null || obj.getClass() != this.getClass()) return false;
-            var that = (Opening) obj;
-            return Objects.equals(this.bounds, that.bounds) &&
-                   Objects.equals(this.direction, that.direction);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(bounds, direction);
-        }
-
-        @Override
-        public String toString() {
-            return "Opening[" +
-                   "bounds=" + bounds + ", " +
-                   "direction=" + direction + ']';
         }
 
         public Opening transformed(MapTransform transform, BlockBounds transformedTemplateBounds) {
