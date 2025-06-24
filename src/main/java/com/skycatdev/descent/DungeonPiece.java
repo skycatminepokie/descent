@@ -1,5 +1,6 @@
 package com.skycatdev.descent;
 
+import com.mojang.datafixers.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import org.jetbrains.annotations.Nullable;
@@ -10,6 +11,7 @@ import xyz.nucleoid.map_templates.MapTransform;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public class DungeonPiece {
     /**
@@ -96,13 +98,31 @@ public class DungeonPiece {
         return new DungeonPiece(bounds, openings, template, transform);
     }
 
-    public record Opening(BlockBounds bounds, Direction direction) {
+    /**
+     * All the possible ways to match this piece's template to an opening by shifting
+     * the piece. Must not account for rotations and mirrors.
+     * @param toMatch The opening to match with
+     * @return A collection of matching pieces, which are just this piece but transformed.
+     */
+    public Stream<Pair<Opening, DungeonPiece>> matchedWith(DungeonPiece.Opening toMatch) {
+        BlockPos matchSize = toMatch.bounds().size();
+        Direction matchOpposite = toMatch.direction().getOpposite();
+        return openings.stream()
+                .filter(opening -> opening.bounds().size().equals(matchSize))
+                .filter(opening -> opening.direction().getOpposite().equals(matchOpposite))
+                .map(opening -> {
+                    BlockPos diff = toMatch.bounds().min().subtract(opening.bounds().min()).offset(toMatch.direction());
+                    return new Pair<>(opening, new DungeonPiece(template, MapTransform.translation(diff.getX(), diff.getY(), diff.getZ())));
+                });
+    }
+
+    public record Opening(BlockBounds bounds, Direction direction, BlockPos center) {
         /**
          * @param bounds         The bounds of the opening.
          * @param templateBounds The bounds of the template this is placed in.
          */
         public Opening(BlockBounds bounds, BlockBounds templateBounds) {
-            this(bounds, dirFromBounds(bounds, templateBounds));
+            this(bounds, dirFromBounds(bounds, templateBounds), BlockPos.ofFloored(bounds.center()));
         }
 
         /**
