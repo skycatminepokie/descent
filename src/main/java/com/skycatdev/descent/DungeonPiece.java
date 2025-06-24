@@ -11,9 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/**
- *
- */
 public class DungeonPiece {
     /**
      * Bounds, transformed using transform.
@@ -63,12 +60,9 @@ public class DungeonPiece {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj == this) return true;
-        if (obj == null || obj.getClass() != this.getClass()) return false;
-        var that = (DungeonPiece) obj;
-        return Objects.equals(this.bounds, that.bounds) &&
-               Objects.equals(this.openings, that.openings);
+    public boolean equals(Object o) {
+        if (!(o instanceof DungeonPiece that)) return false;
+        return Objects.equals(bounds, that.bounds) && Objects.equals(openings, that.openings) && Objects.equals(template, that.template) && Objects.equals(transform, that.transform);
     }
 
     public boolean hasOpening(BlockPos size) {
@@ -77,7 +71,7 @@ public class DungeonPiece {
 
     @Override
     public int hashCode() {
-        return Objects.hash(bounds, openings);
+        return Objects.hash(bounds, openings, template, transform);
     }
 
     public List<Opening> openings() {
@@ -86,9 +80,12 @@ public class DungeonPiece {
 
     @Override
     public String toString() {
-        return "DungeonPiece[" +
-               "bounds=" + bounds + ", " +
-               "openings=" + openings + ']';
+        return "DungeonPiece{" +
+               "bounds=" + bounds +
+               ", openings=" + openings +
+               ", template=" + template +
+               ", transform=" + transform +
+               '}';
     }
 
     public DungeonPiece withTransform(MapTransform transform) {
@@ -101,7 +98,7 @@ public class DungeonPiece {
 
     public record Opening(BlockBounds bounds, Direction direction) {
         /**
-         * @param bounds    The bounds of the opening.
+         * @param bounds         The bounds of the opening.
          * @param templateBounds The bounds of the template this is placed in.
          */
         public Opening(BlockBounds bounds, BlockBounds templateBounds) {
@@ -112,6 +109,7 @@ public class DungeonPiece {
          * Get the direction of an opening based on the bounds of the opening and the bounds of the map.
          * Openings must be one block thick and flush with a face of the map. The chosen opening direction
          * should be considered arbitrary if placed entirely on an edge (read: where two or more wall meet).
+         *
          * @param opening
          * @param map
          * @return
