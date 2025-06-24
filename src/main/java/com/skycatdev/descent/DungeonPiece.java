@@ -130,13 +130,20 @@ public class DungeonPiece {
                 }
             }
             if (size.getY() == 0) {
-                return Direction.from(Direction.Axis.Y,
-                        opening.min().getY() == map.min().getY() ? Direction.AxisDirection.NEGATIVE : Direction.AxisDirection.POSITIVE);
-
+                if (opening.min().getY() == map.min().getY()) {
+                    return Direction.from(Direction.Axis.Y, Direction.AxisDirection.NEGATIVE);
+                }
+                if (opening.min().getY() == map.max().getY()) {
+                    return Direction.from(Direction.Axis.Y, Direction.AxisDirection.POSITIVE);
+                }
             }
             if (size.getZ() == 0) {
-                return Direction.from(Direction.Axis.Z,
-                        opening.min().getZ() == map.min().getZ() ? Direction.AxisDirection.NEGATIVE : Direction.AxisDirection.POSITIVE);
+                if (opening.min().getZ() == map.min().getZ()) {
+                    return Direction.from(Direction.Axis.Z, Direction.AxisDirection.NEGATIVE);
+                }
+                if (opening.min().getZ() == map.max().getZ()) {
+                    return Direction.from(Direction.Axis.Z, Direction.AxisDirection.POSITIVE);
+                }
             }
             throw new IllegalArgumentException("At least one side of an opening must be 1 block thick and flush with the map's wall.");
         }
