@@ -54,11 +54,18 @@ public class DungeonPiece {
         return bounds;
     }
 
-    /**
-     * @return Whether the room connects the given Openings.
-     */
-    public boolean canConnect(Opening a, Opening b) {
-        return openings().contains(a) && openings().contains(b);
+    public boolean isConnected(Opening opening) {
+        for (Opening myOpening : openings) {
+            if (opening.isConnected(myOpening)) return true;
+        }
+        return false;
+    }
+
+    public @Nullable Opening getConnected(Opening opening) {
+        for (Opening myOpening : openings) {
+            if (opening.isConnected(myOpening)) return myOpening;
+        }
+        return null;
     }
 
     @Override
@@ -168,6 +175,13 @@ public class DungeonPiece {
 
         public Opening transformed(MapTransform transform, BlockBounds transformedTemplateBounds) {
             return new Opening(transform.transformedBounds(bounds), transformedTemplateBounds);
+        }
+
+        public boolean isConnected(Opening opening) {
+            return opening.direction().getOpposite().equals(this.direction()) &&
+                   opening.bounds().size().equals(this.bounds().size()) &&
+                   opening.center().getManhattanDistance(this.center()) == 1;
+
         }
 
     }

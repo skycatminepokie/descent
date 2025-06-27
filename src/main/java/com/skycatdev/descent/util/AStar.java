@@ -1,13 +1,14 @@
 package com.skycatdev.descent.util;
 
+import com.mojang.datafixers.util.Pair;
 import com.skycatdev.descent.DungeonPiece;
-import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.map_templates.BlockBounds;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 
 /**
@@ -53,19 +54,31 @@ public class AStar {
                     .flatMap(piece -> piece.matchedWith(fastest.opening())) // Candidate pieces
                     .filter(pair -> dungeon.stream() // Valid pieces
                             .noneMatch(bounds -> bounds.intersects(pair.getSecond().bounds())))
+                    // This operation can't be parallel unless we stop removing from the paths (careful with loopbacks!), or find a way to do it later.
+                    // TODO: This only does one piece, it doesn't work for multiple
+                    .<Pair<DungeonPiece.Opening, DungeonPiece>>mapMulti((pair, consumer) -> { // Add pre-placed paths that are connected to the valid ones
+                        paths.stream()
+                                .map(path -> {
+                                    @Nullable DungeonPiece.Opening connected = path.getConnected(pair.getFirst());
+                                    if (connected == null) return null;
+                                    return new Pair<>(connected, path);
+                                })
+                                .filter(Objects::nonNull)
+                                .findAny().ifPresent((placedPair) -> {
+                                    consumer.accept(placedPair);
+                                    paths.remove(placedPair.getSecond());
+                                });
+                        consumer.accept(pair);
+                    })
                     .map(pair -> new Node(pair.getFirst(), // Turn them into nodes
                             fastest,
                             fastest.distFromStart() + fastest.opening().center().getManhattanDistance(pair.getFirst().center()),
                             pair.getFirst().center().getManhattanDistance(endCenter),  // TODO: May have to give a discount to longer rooms
                             pair.getSecond()))
-                    .filter(node -> open.stream() // Only keep faster ones
+                    .filter(node -> Stream.concat(open.stream(), closed.stream()) // Only keep faster ones
                             .anyMatch(other -> other.pathLength() < node.pathLength() &&
                                              // Pieces shouldn't be null, it's just the starter node that does that, and that's removed by now.
                                              Objects.requireNonNull(other.getPiece()).bounds().intersects(Objects.requireNonNull(node.getPiece()).bounds())))
-                    .filter(node -> closed.stream() // Only keep faster ones
-                            .anyMatch(other -> other.pathLength() < node.pathLength() &&
-                                               // Pieces shouldn't be null, it's just the starter node that does that, and that's removed by now.
-                                               Objects.requireNonNull(other.getPiece()).bounds().intersects(Objects.requireNonNull(node.getPiece()).bounds())))
                     .forEach(open::add);
             // TODO: allow reusing old paths, maybe with a slight discount
 
