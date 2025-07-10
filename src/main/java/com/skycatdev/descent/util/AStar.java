@@ -97,27 +97,27 @@ public class AStar {
         return paths;
     }
 
-    protected static Collection<ProtoNode> traverseAlreadyPlaced(ProtoNode proto, Collection<DungeonPiece> placed) {
+    protected static Stream<ProtoNode> traverseAlreadyPlaced(ProtoNode proto, Collection<DungeonPiece> placed) {
         // Try finding an already-placed piece that has a matching opening
-        Collection<ProtoNode> leaves = new LinkedList<>();
+
         for (DungeonPiece piece : placed) {
             DungeonPiece.@Nullable Opening connected = piece.getConnected(proto.opening());
             if (connected != null) {
                 // If there is one, recurse. The next ProtoNodes we make will have the root ProtoNode's piece
                 // This signifies that we have access to those ProtoNodes only if the root piece is placed.
                 Collection<DungeonPiece> piecesLeft = new LinkedList<>(placed);
-                for (DungeonPiece.Opening opening : piece.openings()) {
-                    if (opening != connected) {
-                        leaves.addAll(traverseAlreadyPlaced(new ProtoNode(opening, proto.piece()), piecesLeft));
-                    }
-                }
-                return leaves;
+                piecesLeft.remove(piece);
+                return piecesLeft.stream()
+                        .flatMap(p -> p.openings().stream())
+                        // Don't traverse the one we just found. There's nothing to find, and it's not a leaf.
+                        // You'd end up wasting time and incorrectly adding it.
+                        .filter(opening -> opening != connected)
+                        .flatMap(opening -> traverseAlreadyPlaced(new ProtoNode(opening, proto.piece()), piecesLeft));
             }
         }
 
         // We can't find any already-placed pieces that match, so there's no more nodes to consider.
-        leaves.add(proto);
-        return leaves;
+        return Stream.of(proto);
     }
 
     protected static <T> T randomFromMax(Map<Integer, List<T>> map, Random random) {
