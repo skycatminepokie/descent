@@ -3,12 +3,13 @@ package com.skycatdev.descent.util;
 import com.mojang.datafixers.util.Pair;
 import com.skycatdev.descent.DungeonPiece;
 import net.minecraft.util.math.BlockPos;
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.map_templates.BlockBounds;
 
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
@@ -21,7 +22,8 @@ public class AStar {
                                                        Collection<BlockBounds> dungeon, // Everywhere we can't intersect - both paths and rooms
                                                        DungeonPiece.Opening start,
                                                        DungeonPiece.Opening end,
-                                                       Collection<DungeonPiece> pieces) throws NoSolutionException { // include all the rotations and mirrors
+                                                       Collection<DungeonPiece> pieces,
+                                                       Random random) throws NoSolutionException { // include all the rotations and mirrors
         // Setup
         BlockPos startCenter = start.center();
         BlockPos endCenter = end.center();
@@ -55,38 +57,19 @@ public class AStar {
                     .flatMap(piece -> piece.matchedWith(parent.opening())) // Find candidate openings
                     .filter(candidate -> dungeon.stream() // Find valid openings (don't intersect things)
                             .noneMatch(bounds -> bounds.intersects(candidate.piece().bounds()))) // TODO: Verify that this blocks all intersections
-                    // TODO: This only does one placed piece, it doesn't work for multiple in series
-                    .<Node>mapMulti((valid, nodeAdder) -> {
-
-                        // Try finding an already-placed piece that has a matching opening
-                        // If there is one, recurse, marking their piece as the VALID opening's piece and not checking this piece for a match
-                        // That says "You can have this node iff you have that piece (and therefore the valid opening)"
-                        // If there is no already-placed piece, add the valid opening's node
-
-                        // Find an already-placed opening that fits and add that too (if it exists)
-                        @Nullable DungeonPiece matchedPath = null;
-                        for (DungeonPiece path : paths) {
-                            @Nullable DungeonPiece.Opening connected = path.getConnected(valid.opening());
-                            if (connected != null) {
-                                matchedPath = path;
-                                nodeAdder.accept(new Node(connected, // Turn them into nodes
-                                        validNode, // Parent
-                                        validNode.distFromStart() + validNode.opening().center().getManhattanDistance(valid.opening().center()), // dist from start
-                                        connected.center().getManhattanDistance(endCenter), // heuristic TODO: May have to give a discount to longer rooms
-                                        path));
-                                break;
-                            }
-                        }
-                        if (matchedPath != null) {
-                            paths.remove(matchedPath);
-                        }
-                    })
+                    .map(proto -> Node.fromProto(proto, parent, endCenter))
+                    .<Node>mapMulti((valid, nodeAdder) -> traverseAlreadyPlaced(valid, paths, nodeAdder, endCenter))
                     .filter(node -> Stream.concat(open.stream(), closed.stream()) // Only keep faster ones
-                            .anyMatch(other -> other.pathLength() < node.pathLength() &&
-                                             // Pieces shouldn't be null, it's just the starter node that does that, and that's removed by now.
-                                             Objects.requireNonNull(other.getPiece()).bounds().intersects(Objects.requireNonNull(node.getPiece()).bounds())))
+                            .noneMatch(other -> other.pathLength() < node.pathLength() && other.opening().equals(node.opening()))) // There are none at the same position with faster paths. TODO More random: if path lengths equal and openings equal, randomly choose whether to keep
+                    // Make sure that two nodes with same opening but different lengths don't both end up on the open list
+                    .collect(Collectors.groupingBy(Node::opening)) // Map of opening to a list of nodes that have that opening
+                    .values().stream() // List of nodes with the same openings
+                    .flatMap(overlappedNodes -> overlappedNodes.stream()
+                            .collect(Collectors.groupingBy(Node::pathLength)) // Map of path length to list of overlapped nodes
+                            .entrySet().stream()
+                            .min(Comparator.comparingInt(Map.Entry::getKey)).orElseThrow().getValue().stream() // A list of overlapped nodes that have the lowest path length
+                    )
                     .forEach(open::add);
-            // TODO: allow reusing old paths, maybe with a slight discount
 
             closed.add(parent);
         }
@@ -97,27 +80,35 @@ public class AStar {
         return paths;
     }
 
-    protected static Stream<ProtoNode> traverseAlreadyPlaced(ProtoNode proto, Collection<DungeonPiece> placed) {
+    protected static void traverseAlreadyPlaced(Node prev, Collection<DungeonPiece> placed, Consumer<Node> collector, BlockPos endCenter) {
         // Try finding an already-placed piece that has a matching opening
+        // If there is one, recurse. The next Nodes we make will have the root Node's piece
+        // This signifies that we have access to those Nodes only if the root piece is placed.
+
 
         for (DungeonPiece piece : placed) {
-            DungeonPiece.@Nullable Opening connected = piece.getConnected(proto.opening());
+            DungeonPiece.@Nullable Opening connected = piece.getConnected(prev.opening());
             if (connected != null) {
-                // If there is one, recurse. The next ProtoNodes we make will have the root ProtoNode's piece
-                // This signifies that we have access to those ProtoNodes only if the root piece is placed.
+                // Found a place for a new Node!
+
                 Collection<DungeonPiece> piecesLeft = new LinkedList<>(placed);
-                piecesLeft.remove(piece);
-                return piecesLeft.stream()
-                        .flatMap(p -> p.openings().stream())
-                        // Don't traverse the one we just found. There's nothing to find, and it's not a leaf.
-                        // You'd end up wasting time and incorrectly adding it.
-                        .filter(opening -> opening != connected)
-                        .flatMap(opening -> traverseAlreadyPlaced(new ProtoNode(opening, proto.piece()), piecesLeft));
+                piecesLeft.remove(piece); // Don't check this one - we don't want a loop, and we already handle this one
+
+                for (DungeonPiece.Opening candidate : piece.openings()) {
+                    if (candidate != connected) { // Don't add the connected one - that's not a leaf
+                        traverseAlreadyPlaced(new Node(candidate,
+                                prev, // Parent
+                                prev.distFromStart() + prev.opening().center().getManhattanDistance(candidate.center()), // dist from start
+                                candidate.center().getManhattanDistance(endCenter), // heuristic TODO: May have to give a discount to longer rooms
+                                prev.getPiece()), piecesLeft, collector, endCenter); // Use prev's piece to show that this node is valid only if the root piece is placed
+                    }
+                }
+                return;
             }
         }
 
-        // We can't find any already-placed pieces that match, so there's no more nodes to consider.
-        return Stream.of(proto);
+        // We can't find any already-placed pieces that match, so this is a leaf.
+        collector.accept(prev);
     }
 
     protected static <T> T randomFromMax(Map<Integer, List<T>> map, Random random) {
@@ -229,6 +220,14 @@ public class AStar {
                    "distFromStart=" + distFromStart + ", " +
                    "heuristic=" + heuristic + ", " +
                    "pathLength=" + pathLength + ']';
+        }
+
+        public static Node fromProto(ProtoNode proto, Node parent, BlockPos endCenter) {
+            return new Node(proto.opening(),
+                    parent, // Parent
+                    parent.distFromStart() + parent.opening().center().getManhattanDistance(proto.opening().center()), // dist from start
+                    proto.opening().center().getManhattanDistance(endCenter), // heuristic
+                    proto.piece());
         }
 
 
