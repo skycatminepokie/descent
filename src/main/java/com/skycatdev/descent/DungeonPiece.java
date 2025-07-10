@@ -1,6 +1,6 @@
 package com.skycatdev.descent;
 
-import com.mojang.datafixers.util.Pair;
+import com.skycatdev.descent.util.AStar;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import org.jetbrains.annotations.Nullable;
@@ -111,7 +111,7 @@ public class DungeonPiece {
      * @param toMatch The opening to match with
      * @return A collection of matching pieces, which are just this piece but transformed.
      */
-    public Stream<Pair<Opening, DungeonPiece>> matchedWith(DungeonPiece.Opening toMatch) {
+    public Stream<AStar.ProtoNode> matchedWith(DungeonPiece.Opening toMatch) {
         BlockPos matchSize = toMatch.bounds().size();
         Direction matchOpposite = toMatch.direction().getOpposite();
         return openings.stream()
@@ -119,7 +119,7 @@ public class DungeonPiece {
                 .filter(opening -> opening.direction().getOpposite().equals(matchOpposite))
                 .map(opening -> {
                     BlockPos diff = toMatch.bounds().min().subtract(opening.bounds().min()).offset(toMatch.direction());
-                    return new Pair<>(opening, new DungeonPiece(template, MapTransform.translation(diff.getX(), diff.getY(), diff.getZ())));
+                    return new AStar.ProtoNode(opening, new DungeonPiece(template, MapTransform.translation(diff.getX(), diff.getY(), diff.getZ())));
                 });
     }
 

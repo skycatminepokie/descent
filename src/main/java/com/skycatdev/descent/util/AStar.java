@@ -3,6 +3,7 @@ package com.skycatdev.descent.util;
 import com.mojang.datafixers.util.Pair;
 import com.skycatdev.descent.DungeonPiece;
 import net.minecraft.util.math.BlockPos;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.map_templates.BlockBounds;
@@ -51,33 +52,35 @@ public class AStar {
 
             // Generate successors
             pieces.stream() // TODO: Parallelize?
-                    .flatMap(piece -> piece.matchedWith(parent.opening())) // Find candidate pieces
-                    .filter(candidate -> dungeon.stream() // Find valid pieces
-                            .noneMatch(bounds -> bounds.intersects(candidate.getSecond().bounds())))
-                    // TODO: This only does one piece, it doesn't work for multiple in series
-                    .<Pair<DungeonPiece.Opening, DungeonPiece>>mapMulti((valid, connectedOpeningAdder) -> { // Add pre-placed paths that are connected to the valid ones
-                        Collection<DungeonPiece> matchedPaths = new LinkedList<>();
-                        paths.stream()
-                                .<Pair<DungeonPiece.Opening, DungeonPiece>>mapMulti((path, pathStreamAdder) -> {
-                                    // If the path connects to the other opening, return it
-                                    @Nullable DungeonPiece.Opening connected = path.getConnected(valid.getFirst());
-                                    if (connected != null) {
-                                        pathStreamAdder.accept(new Pair<>(connected, path));
-                                    }
-                                })
-                                .findAny().ifPresent((placedPair) -> {
-                                    connectedOpeningAdder.accept(placedPair);
-                                    matchedPaths.add(placedPair.getSecond());
-                                });
-                        // This stops us from making this concurrent at the moment. We'd need a way to prevent loopbacks, and preferably checking
-                        paths.removeAll(matchedPaths);
-                        connectedOpeningAdder.accept(valid);
+                    .flatMap(piece -> piece.matchedWith(parent.opening())) // Find candidate openings
+                    .filter(candidate -> dungeon.stream() // Find valid openings (don't intersect things)
+                            .noneMatch(bounds -> bounds.intersects(candidate.piece().bounds()))) // TODO: Verify that this blocks all intersections
+                    // TODO: This only does one placed piece, it doesn't work for multiple in series
+                    .<Node>mapMulti((valid, nodeAdder) -> {
+
+                        // Try finding an already-placed piece that has a matching opening
+                        // If there is one, recurse, marking their piece as the VALID opening's piece and not checking this piece for a match
+                        // That says "You can have this node iff you have that piece (and therefore the valid opening)"
+                        // If there is no already-placed piece, add the valid opening's node
+
+                        // Find an already-placed opening that fits and add that too (if it exists)
+                        @Nullable DungeonPiece matchedPath = null;
+                        for (DungeonPiece path : paths) {
+                            @Nullable DungeonPiece.Opening connected = path.getConnected(valid.opening());
+                            if (connected != null) {
+                                matchedPath = path;
+                                nodeAdder.accept(new Node(connected, // Turn them into nodes
+                                        validNode, // Parent
+                                        validNode.distFromStart() + validNode.opening().center().getManhattanDistance(valid.opening().center()), // dist from start
+                                        connected.center().getManhattanDistance(endCenter), // heuristic TODO: May have to give a discount to longer rooms
+                                        path));
+                                break;
+                            }
+                        }
+                        if (matchedPath != null) {
+                            paths.remove(matchedPath);
+                        }
                     })
-                    .map(pair -> new Node(pair.getFirst(), // Turn them into nodes
-                            parent, // Parent
-                            parent.distFromStart() + parent.opening().center().getManhattanDistance(pair.getFirst().center()), // dist from start
-                            pair.getFirst().center().getManhattanDistance(endCenter),  // heuristic TODO: May have to give a discount to longer rooms
-                            pair.getSecond()))
                     .filter(node -> Stream.concat(open.stream(), closed.stream()) // Only keep faster ones
                             .anyMatch(other -> other.pathLength() < node.pathLength() &&
                                              // Pieces shouldn't be null, it's just the starter node that does that, and that's removed by now.
@@ -92,6 +95,29 @@ public class AStar {
 
 
         return paths;
+    }
+
+    protected static Collection<ProtoNode> traverseAlreadyPlaced(ProtoNode proto, Collection<DungeonPiece> placed) {
+        // Try finding an already-placed piece that has a matching opening
+        Collection<ProtoNode> leaves = new LinkedList<>();
+        for (DungeonPiece piece : placed) {
+            DungeonPiece.@Nullable Opening connected = piece.getConnected(proto.opening());
+            if (connected != null) {
+                // If there is one, recurse. The next ProtoNodes we make will have the root ProtoNode's piece
+                // This signifies that we have access to those ProtoNodes only if the root piece is placed.
+                Collection<DungeonPiece> piecesLeft = new LinkedList<>(placed);
+                for (DungeonPiece.Opening opening : piece.openings()) {
+                    if (opening != connected) {
+                        leaves.addAll(traverseAlreadyPlaced(new ProtoNode(opening, proto.piece()), piecesLeft));
+                    }
+                }
+                return leaves;
+            }
+        }
+
+        // We can't find any already-placed pieces that match, so there's no more nodes to consider.
+        leaves.add(proto);
+        return leaves;
     }
 
     protected static <T> T randomFromMax(Map<Integer, List<T>> map, Random random) {
@@ -205,6 +231,18 @@ public class AStar {
                    "pathLength=" + pathLength + ']';
         }
 
+
+    }
+
+    /**
+     *
+     * @param opening
+     * @param piece The piece to place to reach the opening.
+     * @implNote Note that you may have multiple pieces for each opening (multiple ProtoNodes).
+     * This can happen when there is more than one piece that would allow access to the opening - two potential pieces may
+     * overlap, or there may be more than one piece that connects to an already placed piece.
+     */
+    public record ProtoNode(DungeonPiece.Opening opening, DungeonPiece piece) {
 
     }
 
