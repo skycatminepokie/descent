@@ -16,8 +16,8 @@ public class Prim {
         Set<Vec3d> open = new HashSet<>();
         Set<Vec3d> closed = new HashSet<>();
         for (Edge edge : edges) {
-            open.add(edge.getU());
-            open.add(edge.getV());
+            open.add(edge.u());
+            open.add(edge.v());
         }
 
         closed.add(start);
@@ -29,7 +29,7 @@ public class Prim {
             double minWeight = Float.POSITIVE_INFINITY;
 
             for (Edge edge : edges) {
-                if (!closed.contains(edge.getU()) ^ !closed.contains(edge.getV())) {
+                if (!closed.contains(edge.u()) ^ !closed.contains(edge.v())) {
                     if (edge.getLength() < minWeight) {
                         chosen = edge;
                         minWeight = edge.getLength();
@@ -39,10 +39,10 @@ public class Prim {
 
             if (chosen == null) break;
             results.add(chosen);
-            open.remove(chosen.getU());
-            open.remove(chosen.getV());
-            closed.add(chosen.getU());
-            closed.add(chosen.getV());
+            open.remove(chosen.u());
+            open.remove(chosen.v());
+            closed.add(chosen.u());
+            closed.add(chosen.v());
         }
 
         return results;
