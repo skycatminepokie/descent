@@ -142,24 +142,23 @@ public class AStar {
     }
 
     /**
-     * @param base      Places to not intersect. Openings in these pieces may be opened.
-     * @param toConnect Openings to connect. These will be opened.
+     * @param base      Places to not intersect.
+     * @param toConnect Openings to connect.
      * @param pieces    The pieces that can be used to build a path.
-     * @param cellSize  The size of a single dungeon cell. Make sure there's a way to
-     *                  connect every combination of directions with a cell
-     *                  of this size.
-     * @return The additional pieces that make up the path.
+     * @return The additional pieces that make up the paths.
      */
-    public static Collection<DungeonPiece> getPaths(Collection<DungeonPiece> base,
-                                                    Collection<Pair<BlockBounds, BlockBounds>> toConnect,
-                                                    Collection<DungeonPiece> pieces,
-                                                    int cellSize) {
-        // TODO
+    public static Collection<DungeonPiece> generatePath(Collection<DungeonPiece> base,
+                                                        Collection<Pair<DungeonPiece.Opening, DungeonPiece.Opening>> toConnect,
+                                                        Collection<DungeonPiece> pieces,
+                                                        Random random) throws NoSolutionException {
         Collection<DungeonPiece> paths = new LinkedList<>();
-        for (Pair<BlockBounds, BlockBounds> connection : toConnect) {
-            findPath(paths, )
+        Collection<BlockBounds> dungeonBounds = base.stream()
+                .map(DungeonPiece::bounds)
+                .toList();
+        for (Pair<DungeonPiece.Opening, DungeonPiece.Opening> connection : toConnect) {
+            findPath(paths, dungeonBounds, connection.getFirst(), connection.getSecond(), pieces, random);
         }
-        return null;
+        return paths;
     }
 
     public static final class Node {
@@ -189,11 +188,11 @@ public class AStar {
         }
 
         /**
-         * @param opening
-         * @param parent
+         * @param opening       The Opening this Node is connected to.
+         * @param parent        The Node's parent. If the parent is accessible, and this Node's piece is placed, this Node is accessible.
          * @param distFromStart The travelling distance from the start (g)
          * @param heuristic     An estimated travelling distance from the end (h)
-         * @param piece
+         * @param piece         The piece that must be placed to access this node (assuming the parent is accessible)
          */
         public Node(
                 DungeonPiece.Opening opening,
