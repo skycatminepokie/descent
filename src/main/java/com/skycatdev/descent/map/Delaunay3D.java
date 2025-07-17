@@ -2,23 +2,19 @@ package com.skycatdev.descent.map;
 
 import net.minecraft.util.math.Vec3d;
 
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 // Adapted from https://github.com/vazgriz/DungeonGenerator/blob/master/Assets/Scripts3D/Delaunay3D.cs
 // See src/main/resources/third_party_licenses/zeni.txt and src/main/resources/third_party_licenses/vazgriz.txt
 public class Delaunay3D {
 
     private static Set<Edge> triangulate(List<Vec3d> vertices) {
-        // General idea: Make one big tetrahedron that encompasses it all
+        // General idea: Make one big tetrahedron that encompasses it all.
         // For each vertex, find all tetrahedra that contain it. Break those down into triangles.
-        // Then, construct tetrahedra from those triangles and the vertex - we just split the big tetrahedron into four
-        // smaller tetrahedra. Now we're left with a ton of tetrahedra, none of which contain one of the vertices.
+        // Then, construct tetrahedra from those triangles and the vertex - we just split the big tetrahedron into a ton
+        // of tetrahedra, none of which contain one of the vertices.
         // Get rid of the tetrahedra that have the vertices of the big tetrahedron - now we don't have those points in
         // our graph. Finally, return all the unique edges.
-
 
         // Find bounds
         double maxX, maxY, maxZ;
@@ -40,27 +36,31 @@ public class Delaunay3D {
         double dz = maxZ - minZ;
         double deltaMax = Math.max(dx, Math.max(dy, dz)); // Biggest side of bounds
 
-        // Pretty sure this is the tetrahedron that circumscribes the whole thing
         Vec3d p1 = new Vec3d(minX - 1, minY - 1, minZ - 1);
         Vec3d p2 = new Vec3d(maxX + deltaMax, minY - 1, minZ - 1);
         Vec3d p3 = new Vec3d(minX - 1, maxY + deltaMax, minZ -1);
         Vec3d p4 = new Vec3d(minX - 1, minY - 1, maxZ + deltaMax);
 
         List<Tetrahedron> tetrahedra = new LinkedList<>();
+        // Make one big tetrahedron that encompasses it all
         tetrahedra.add(new Tetrahedron(p1, p2, p3, p4));
 
+        // For each vertex, find all tetrahedra that contain it
         for (Vec3d vertex : vertices) {
             List<Triangle> triangles = new LinkedList<>();
 
+            // Break those down into triangles
+            Collection<Tetrahedron> badTetrahedra = new LinkedList<>();
             for (Tetrahedron t : tetrahedra) {
                 if (t.circumsphereContains(vertex)) {
-                    t.setBad(true);
-                    triangles.add(new Triangle(t.a, t.b, t.c));
-                    triangles.add(new Triangle(t.a, t.b, t.d));
-                    triangles.add(new Triangle(t.a, t.c, t.d));
-                    triangles.add(new Triangle(t.b, t.c, t.d));
+                    badTetrahedra.add(t);
+                    triangles.add(new Triangle(t.a(), t.b(), t.c()));
+                    triangles.add(new Triangle(t.a(), t.b(), t.d()));
+                    triangles.add(new Triangle(t.a(), t.c(), t.d()));
+                    triangles.add(new Triangle(t.b(), t.c(), t.d()));
                 }
             }
+            tetrahedra.removeAll(badTetrahedra);
 
             // Compare each triangle to every other triangle. If they're too similar, get rid of them.
             for (int i = 0; i < triangles.size(); i++) {
@@ -72,14 +72,16 @@ public class Delaunay3D {
                 }
             }
 
-            tetrahedra.removeIf(Tetrahedron::isBad);
             triangles.removeIf(Triangle::isBad);
 
+            // Construct tetrahedra from those triangles and the vertex (we just split the tetrahedra into many smaller ones)
             for (Triangle triangle : triangles) {
                 tetrahedra.add(new Tetrahedron(triangle.getU(), triangle.getV(), triangle.getW(), vertex));
             }
         }
 
+        // Get rid of the tetrahedra that have the vertices of the big tetrahedron - now we don't have those points in
+        // our graph.
         tetrahedra.removeIf(t -> t.containsVertex(p1) ||
                                  t.containsVertex(p2) ||
                                  t.containsVertex(p3) ||
@@ -88,13 +90,15 @@ public class Delaunay3D {
         HashSet<Edge> edgeSet = new HashSet<>();
 
         for (Tetrahedron t : tetrahedra) {
-            edgeSet.add(new Edge(t.a, t.b));
-            edgeSet.add(new Edge(t.b, t.c));
-            edgeSet.add(new Edge(t.c, t.a));
-            edgeSet.add(new Edge(t.d, t.a));
-            edgeSet.add(new Edge(t.d, t.b));
-            edgeSet.add(new Edge(t.d, t.c));
+            edgeSet.add(new Edge(t.a(), t.b()));
+            edgeSet.add(new Edge(t.b(), t.c()));
+            edgeSet.add(new Edge(t.c(), t.a()));
+            edgeSet.add(new Edge(t.d(), t.a()));
+            edgeSet.add(new Edge(t.d(), t.b()));
+            edgeSet.add(new Edge(t.d(), t.c()));
         }
+
+        // Return all the unique edges
         return edgeSet;
     }
 
