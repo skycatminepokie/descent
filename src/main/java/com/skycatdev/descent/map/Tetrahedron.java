@@ -8,7 +8,7 @@ public record Tetrahedron(Vec3d a, Vec3d b, Vec3d c, Vec3d d, Sphere circumspher
         this(a, b, c, d, Sphere.circumsphere(a, b, c, d));
     }
 
-    public boolean containsVertex(Vec3d point) {
+    public boolean hasVertex(Vec3d point) {
         return Delaunay3D.almostEqual(point, a) ||
                Delaunay3D.almostEqual(point, b) ||
                Delaunay3D.almostEqual(point, c) ||

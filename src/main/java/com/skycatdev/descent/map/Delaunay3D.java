@@ -8,15 +8,24 @@ import java.util.*;
 // See src/main/resources/third_party_licenses/zeni.txt and src/main/resources/third_party_licenses/vazgriz.txt
 public class Delaunay3D {
 
+    /*
+     This *might* be optimized further by making tetrahedra out of triangles and triangles out of edges.
+     It would mean redundant checks for Tetrahedron's hasVertex (and then Triangle's hasVertex) unless something
+     clever was done, but much less object instantiation. Not quite clever enough is checking all the vertices of all
+     but one of the triangles - that's still 9 checks instead of 4, assuming the triangle was clever enough to check
+     only 3.
+    */
     private static Set<Edge> triangulate(List<Vec3d> vertices) {
-        // General idea: Make one big tetrahedron that encompasses it all.
-        // For each vertex, find all tetrahedra that contain it. Break those down into triangles.
-        // Then, construct tetrahedra from those triangles and the vertex - we just split the big tetrahedron into a ton
-        // of tetrahedra, none of which contain one of the vertices.
-        // Get rid of the tetrahedra that have the vertices of the big tetrahedron - now we don't have those points in
-        // our graph. Finally, return all the unique edges.
+        /*
+         General idea: Make one big tetrahedron that encompasses it all.
+         For each vertex, find all tetrahedra that contain it. Break those down into triangles.
+         Then, construct tetrahedra from those triangles and the vertex - we just split the big tetrahedron into a ton
+         of tetrahedra, none of which contain one of the vertices.
+         Get rid of the tetrahedra that have the vertices of the big tetrahedron - now we don't have those points in
+         our graph. Finally, return all the unique edges.
+         Find bounds
+        */
 
-        // Find bounds
         double maxX, maxY, maxZ;
         double minX = maxX = vertices.getFirst().getX();
         double minY = maxY = vertices.getFirst().getY();
@@ -82,10 +91,10 @@ public class Delaunay3D {
 
         // Get rid of the tetrahedra that have the vertices of the big tetrahedron - now we don't have those points in
         // our graph.
-        tetrahedra.removeIf(t -> t.containsVertex(p1) ||
-                                 t.containsVertex(p2) ||
-                                 t.containsVertex(p3) ||
-                                 t.containsVertex(p4));
+        tetrahedra.removeIf(t -> t.hasVertex(p1) ||
+                                 t.hasVertex(p2) ||
+                                 t.hasVertex(p3) ||
+                                 t.hasVertex(p4));
 
         HashSet<Edge> edgeSet = new HashSet<>();
 
