@@ -18,11 +18,11 @@ import java.util.stream.Stream;
  */
 public class AStar {
     protected static List<Node> findPath(Collection<DungeonPiece> paths,
-                                                       Collection<BlockBounds> dungeon, // Everywhere we can't intersect - both paths and rooms
-                                                       DungeonPiece.Opening start,
-                                                       DungeonPiece.Opening end,
-                                                       Collection<DungeonPiece> pieces,
-                                                       Random random) throws NoSolutionException { // include all the rotations and mirrors
+                                         Collection<BlockBounds> dungeon, // Everywhere we can't intersect - both paths and rooms
+                                         DungeonPiece.Opening start,
+                                         DungeonPiece.Opening end,
+                                         Collection<DungeonPiece> pieces,
+                                         Random random) throws NoSolutionException { // include all the rotations and mirrors
         // Setup
         BlockPos startCenter = start.center();
         BlockPos endCenter = end.center();
@@ -62,11 +62,11 @@ public class AStar {
                             .noneMatch(other -> other.pathLength() < node.pathLength() && other.opening().equals(node.opening()))) // There are none at the same position with faster paths. TODO More random: if path lengths equal and openings equal, randomly choose whether to keep
                     // Make sure that two nodes with same opening but different lengths don't both end up on the open list
                     .collect(Collectors.groupingBy(Node::opening)); // Map of opening to a list of nodes that have that opening
-            
+
             // Openings and nodes that have that opening
             for (Map.Entry<DungeonPiece.Opening, List<Node>> entry : nodesByOpening.entrySet()) {
                 List<Node> nodes = entry.getValue();
-                
+
                 // Get only the fastest ones for this opening
                 List<Node> fastestNodes = getFastest(nodes);
 
@@ -74,13 +74,33 @@ public class AStar {
                     var finishingNode = fastestNodes.get(random.nextInt(fastestNodes.size())); // Choose a random one
                     return finishingNode.computePath();
                 }
-                
+
                 open.addAll(fastestNodes);
             }
-                
+
             closed.add(parent);
         }
         throw new NoSolutionException(); // TODO: Logging
+    }
+
+    /**
+     * @param base      Places to not intersect.
+     * @param toConnect Openings to connect.
+     * @param pieces    The pieces that can be used to build a path.
+     * @return The additional pieces that make up the paths.
+     */
+    public static Collection<DungeonPiece> generatePath(Collection<DungeonPiece> base,
+                                                        Collection<Pair<DungeonPiece.Opening, DungeonPiece.Opening>> toConnect,
+                                                        Collection<DungeonPiece> pieces,
+                                                        Random random) throws NoSolutionException {
+        Collection<DungeonPiece> paths = new LinkedList<>();
+        Collection<BlockBounds> dungeonBounds = base.stream()
+                .map(DungeonPiece::bounds)
+                .toList();
+        for (Pair<DungeonPiece.Opening, DungeonPiece.Opening> connection : toConnect) {
+            findPath(paths, dungeonBounds, connection.getFirst(), connection.getSecond(), pieces, random);
+        }
+        return paths;
     }
 
     private static @NotNull List<Node> getFastest(List<Node> nodes) {
@@ -98,10 +118,14 @@ public class AStar {
         return fastestNodes;
     }
 
+    protected static <T> T randomFromMax(Map<Integer, List<T>> map, Random random) {
+        List<T> list = map.get(map.keySet().stream().max(Integer::compare).orElseThrow(() -> new IllegalArgumentException("Map must not be empty")));
+        return list.get(random.nextInt(list.size()));
+    }
+
     /**
-     *
-     * @param prev The node to start searching from.
-     * @param placed The placed pieces to search for connections through.
+     * @param prev      The node to start searching from.
+     * @param placed    The placed pieces to search for connections through.
      * @param collector What to call when we've found a path through the placed pieces.
      * @param endCenter The center of the ending opening (used for distance estimation)
      */
@@ -136,31 +160,6 @@ public class AStar {
         collector.accept(prev);
     }
 
-    protected static <T> T randomFromMax(Map<Integer, List<T>> map, Random random) {
-        List<T> list = map.get(map.keySet().stream().max(Integer::compare).orElseThrow(() -> new IllegalArgumentException("Map must not be empty")));
-        return list.get(random.nextInt(list.size()));
-    }
-
-    /**
-     * @param base      Places to not intersect.
-     * @param toConnect Openings to connect.
-     * @param pieces    The pieces that can be used to build a path.
-     * @return The additional pieces that make up the paths.
-     */
-    public static Collection<DungeonPiece> generatePath(Collection<DungeonPiece> base,
-                                                        Collection<Pair<DungeonPiece.Opening, DungeonPiece.Opening>> toConnect,
-                                                        Collection<DungeonPiece> pieces,
-                                                        Random random) throws NoSolutionException {
-        Collection<DungeonPiece> paths = new LinkedList<>();
-        Collection<BlockBounds> dungeonBounds = base.stream()
-                .map(DungeonPiece::bounds)
-                .toList();
-        for (Pair<DungeonPiece.Opening, DungeonPiece.Opening> connection : toConnect) {
-            findPath(paths, dungeonBounds, connection.getFirst(), connection.getSecond(), pieces, random);
-        }
-        return paths;
-    }
-
     /**
      * @param opening       The Opening this Node is connected to.
      * @param parent        The Node's parent. If the parent is accessible, and this Node's piece is placed, this Node is accessible.
@@ -170,42 +169,41 @@ public class AStar {
      */
     public record Node(DungeonPiece.Opening opening, AStar.@Nullable Node parent, int distFromStart, int heuristic,
                        @Nullable DungeonPiece piece, int pathLength) {
-            /**
-             * @return A list containing this Node, its parent (if it has one), that parent's parent (if it has one), and so on.
-             */
-            public List<Node> computePath() {
-                List<Node> ancestors = new LinkedList<>();
-                @Nullable Node current = this;
-                while (current != null) {
-                    ancestors.add(current);
-                    current = current.parent();
-                }
-                return ancestors;
-            }
-
-            public Node(
-                    DungeonPiece.Opening opening,
-                    @Nullable Node parent,
-                    int distFromStart,
-                    int heuristic,
-                    @Nullable DungeonPiece piece
-            ) {
-                this(opening, parent, distFromStart, heuristic, piece, distFromStart + heuristic);
-            }
-
-            public static Node fromProto(ProtoNode proto, Node parent, BlockPos endCenter) {
-                return new Node(proto.opening(),
-                        parent, // Parent
-                        parent.distFromStart() + parent.opening().center().getManhattanDistance(proto.opening().center()), // dist from start
-                        proto.opening().center().getManhattanDistance(endCenter), // heuristic
-                        proto.piece());
-            }
+        public Node(
+                DungeonPiece.Opening opening,
+                @Nullable Node parent,
+                int distFromStart,
+                int heuristic,
+                @Nullable DungeonPiece piece
+        ) {
+            this(opening, parent, distFromStart, heuristic, piece, distFromStart + heuristic);
         }
 
+        public static Node fromProto(ProtoNode proto, Node parent, BlockPos endCenter) {
+            return new Node(proto.opening(),
+                    parent, // Parent
+                    parent.distFromStart() + parent.opening().center().getManhattanDistance(proto.opening().center()), // dist from start
+                    proto.opening().center().getManhattanDistance(endCenter), // heuristic
+                    proto.piece());
+        }
+
+        /**
+         * @return A list containing this Node, its parent (if it has one), that parent's parent (if it has one), and so on.
+         */
+        public List<Node> computePath() {
+            List<Node> ancestors = new LinkedList<>();
+            @Nullable Node current = this;
+            while (current != null) {
+                ancestors.add(current);
+                current = current.parent();
+            }
+            return ancestors;
+        }
+    }
+
     /**
-     *
      * @param opening
-     * @param piece The piece to place to reach the opening.
+     * @param piece   The piece to place to reach the opening.
      * @implNote Note that you may have multiple pieces for each opening (multiple ProtoNodes).
      * This can happen when there is more than one piece that would allow access to the opening - two potential pieces may
      * overlap, or there may be more than one piece that connects to an already placed piece.
