@@ -1,7 +1,6 @@
-package com.skycatdev.descent.util;
+package com.skycatdev.descent.map;
 
 import com.mojang.datafixers.util.Pair;
-import com.skycatdev.descent.DungeonPiece;
 import net.minecraft.util.math.BlockPos;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

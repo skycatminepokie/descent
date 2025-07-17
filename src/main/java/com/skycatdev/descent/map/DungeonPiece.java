@@ -1,6 +1,5 @@
-package com.skycatdev.descent;
+package com.skycatdev.descent.map;
 
-import com.skycatdev.descent.util.AStar;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import org.jetbrains.annotations.Nullable;

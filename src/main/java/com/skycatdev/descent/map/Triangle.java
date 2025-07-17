@@ -1,4 +1,4 @@
-package com.skycatdev.descent.util;
+package com.skycatdev.descent.map;
 
 import net.minecraft.util.math.Vec3d;
 

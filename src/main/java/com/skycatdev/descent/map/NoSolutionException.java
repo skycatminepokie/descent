@@ -1,4 +1,4 @@
-package com.skycatdev.descent.util;
+package com.skycatdev.descent.map;
 
 public class NoSolutionException extends Exception {
     public NoSolutionException() {
