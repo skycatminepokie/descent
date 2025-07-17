@@ -23,8 +23,9 @@ public class Delaunay3D {
          of tetrahedra, none of which contain one of the vertices.
          Get rid of the tetrahedra that have the vertices of the big tetrahedron - now we don't have those points in
          our graph. Finally, return all the unique edges.
-         Find bounds
         */
+
+        // Find bounds
 
         double maxX, maxY, maxZ;
         double minX = maxX = vertices.getFirst().getX();
