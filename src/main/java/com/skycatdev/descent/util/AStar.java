@@ -72,7 +72,7 @@ public class AStar {
 
                 if (entry.getKey().isConnected(end)) { // We've found node(s) next to the end!
                     var finishingNode = fastestNodes.get(random.nextInt(fastestNodes.size())); // Choose a random one
-                    return finishingNode.path();
+                    return finishingNode.computePath();
                 }
                 
                 open.addAll(fastestNodes);
@@ -124,7 +124,7 @@ public class AStar {
                                 prev, // Parent
                                 prev.distFromStart() + prev.opening().center().getManhattanDistance(candidate.center()), // dist from start
                                 candidate.center().getManhattanDistance(endCenter), // heuristic TODO: May have to give a discount to longer rooms
-                                prev.getPiece()), piecesLeft, collector, endCenter); // Use prev's piece to show that this node is valid only if the root piece is placed
+                                prev.piece()), piecesLeft, collector, endCenter); // Use prev's piece to show that this node is valid only if the root piece is placed
                     }
                 }
                 return;
@@ -161,119 +161,46 @@ public class AStar {
         return paths;
     }
 
-    public static final class Node {
-        private final DungeonPiece.Opening opening;
-        private final int distFromStart;
-        private final int heuristic;
-        private final int pathLength;
-        private @Nullable Node parent;
-        private final @Nullable DungeonPiece piece;
-
-        public @Nullable DungeonPiece getPiece() {
-            return piece;
-        }
-
-        /**
-         * 
-         * @return A list containing this Node, its parent (if it has one), that parent's parent (if it has one), and so on.
-         */
-        public List<Node> path() {
-            List<Node> ancestors = new LinkedList<>();
-            @Nullable Node current = this;
-            while (current != null) {
-                ancestors.add(current);
-                current = current.parent();
+    /**
+     * @param opening       The Opening this Node is connected to.
+     * @param parent        The Node's parent. If the parent is accessible, and this Node's piece is placed, this Node is accessible.
+     * @param distFromStart The travelling distance from the start (g)
+     * @param heuristic     An estimated travelling distance from the end (h)
+     * @param piece         The piece that must be placed to access this node (assuming the parent is accessible)
+     */
+    public record Node(DungeonPiece.Opening opening, AStar.@Nullable Node parent, int distFromStart, int heuristic,
+                       @Nullable DungeonPiece piece, int pathLength) {
+            /**
+             * @return A list containing this Node, its parent (if it has one), that parent's parent (if it has one), and so on.
+             */
+            public List<Node> computePath() {
+                List<Node> ancestors = new LinkedList<>();
+                @Nullable Node current = this;
+                while (current != null) {
+                    ancestors.add(current);
+                    current = current.parent();
+                }
+                return ancestors;
             }
-            return ancestors;
+
+            public Node(
+                    DungeonPiece.Opening opening,
+                    @Nullable Node parent,
+                    int distFromStart,
+                    int heuristic,
+                    @Nullable DungeonPiece piece
+            ) {
+                this(opening, parent, distFromStart, heuristic, piece, distFromStart + heuristic);
+            }
+
+            public static Node fromProto(ProtoNode proto, Node parent, BlockPos endCenter) {
+                return new Node(proto.opening(),
+                        parent, // Parent
+                        parent.distFromStart() + parent.opening().center().getManhattanDistance(proto.opening().center()), // dist from start
+                        proto.opening().center().getManhattanDistance(endCenter), // heuristic
+                        proto.piece());
+            }
         }
-
-        /**
-         * @param opening       The Opening this Node is connected to.
-         * @param parent        The Node's parent. If the parent is accessible, and this Node's piece is placed, this Node is accessible.
-         * @param distFromStart The travelling distance from the start (g)
-         * @param heuristic     An estimated travelling distance from the end (h)
-         * @param piece         The piece that must be placed to access this node (assuming the parent is accessible)
-         */
-        public Node(
-                DungeonPiece.Opening opening,
-                @Nullable Node parent,
-                int distFromStart,
-                int heuristic,
-                @Nullable DungeonPiece piece
-        ) {
-            this.opening = opening;
-            this.parent = parent;
-            this.distFromStart = distFromStart;
-            this.heuristic = heuristic;
-            this.piece = piece;
-            this.pathLength = distFromStart + heuristic;
-        }
-
-        public Node(DungeonPiece.Opening opening, int distFromStart, int heuristic, @Nullable DungeonPiece piece) {
-            this(opening, null, distFromStart, heuristic, piece);
-        }
-
-        public int distFromStart() {
-            return distFromStart;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == this) return true;
-            if (obj == null || obj.getClass() != this.getClass()) return false;
-            var that = (Node) obj;
-            return Objects.equals(this.opening, that.opening) &&
-                   Objects.equals(this.parent, that.parent) &&
-                   this.distFromStart == that.distFromStart &&
-                   this.heuristic == that.heuristic &&
-                   this.pathLength == that.pathLength;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(opening, parent, distFromStart, heuristic, pathLength);
-        }
-
-        public int heuristic() {
-            return heuristic;
-        }
-
-        public DungeonPiece.Opening opening() {
-            return opening;
-        }
-
-        public @Nullable Node parent() {
-            return parent;
-        }
-
-        public int pathLength() {
-            return pathLength;
-        }
-
-        public void setParent(Node node) {
-            this.parent = node;
-        }
-
-        @Override
-        public String toString() {
-            return "Node[" +
-                   "opening=" + opening + ", " +
-                   "parent=" + parent + ", " +
-                   "distFromStart=" + distFromStart + ", " +
-                   "heuristic=" + heuristic + ", " +
-                   "pathLength=" + pathLength + ']';
-        }
-
-        public static Node fromProto(ProtoNode proto, Node parent, BlockPos endCenter) {
-            return new Node(proto.opening(),
-                    parent, // Parent
-                    parent.distFromStart() + parent.opening().center().getManhattanDistance(proto.opening().center()), // dist from start
-                    proto.opening().center().getManhattanDistance(endCenter), // heuristic
-                    proto.piece());
-        }
-
-
-    }
 
     /**
      *
