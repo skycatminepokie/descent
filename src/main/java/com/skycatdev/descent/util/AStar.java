@@ -118,11 +118,6 @@ public class AStar {
         return fastestNodes;
     }
 
-    protected static <T> T randomFromMax(Map<Integer, List<T>> map, Random random) {
-        List<T> list = map.get(map.keySet().stream().max(Integer::compare).orElseThrow(() -> new IllegalArgumentException("Map must not be empty")));
-        return list.get(random.nextInt(list.size()));
-    }
-
     /**
      * @param prev      The node to start searching from.
      * @param placed    The placed pieces to search for connections through.
