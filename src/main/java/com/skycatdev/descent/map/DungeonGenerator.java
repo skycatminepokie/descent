@@ -1,0 +1,118 @@
+package com.skycatdev.descent.map;
+
+import com.skycatdev.descent.config.MapConfig;
+import com.skycatdev.descent.utils.Utils;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.Vec3i;
+import net.minecraft.util.math.random.Random;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.Nullable;
+import xyz.nucleoid.map_templates.BlockBounds;
+import xyz.nucleoid.map_templates.MapTemplate;
+import xyz.nucleoid.map_templates.MapTemplateSerializer;
+import xyz.nucleoid.map_templates.MapTransform;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+
+public class DungeonGenerator {
+    public static MapTemplate generate(MapConfig config, MinecraftServer server, Random random) throws IOException {
+        DungeonPiece start = loadPiece(config.starts().get(random), server);
+        DungeonPiece end = loadPiece(config.ends().get(random), server);
+        List<DungeonPiece> paths = loadPieces(config.paths(), server);
+        List<DungeonPiece> rooms = new ArrayList<>();
+
+        for (int i = 0; i < config.numberOfRooms() - 2; i++) { // -2 to account for start and end
+            DungeonPiece room = loadPiece(config.rooms().get(random), server);
+            Vec3i center = BlockPos.ofFloored(room.bounds().center());
+            room.withTransform(MapTransform.translation(-center.getX(), -center.getY(), -center.getZ())); // Center the room
+            rooms.add(room);
+        }
+
+        steerRooms(config, random, rooms);
+
+        return null; // TODO
+    }
+
+    @SuppressWarnings("UnusedReturnValue")
+    @Contract("_,_,_->param3")
+    private static List<DungeonPiece> steerRooms(MapConfig config, Random random, List<DungeonPiece> rooms) {
+        boolean keepSteering = true;
+
+        while (keepSteering) {
+            keepSteering = false;
+            for (int i = 0; i < rooms.size(); i++) {
+                DungeonPiece main = rooms.get(i);
+                boolean move = false; // Whether this needs to move - handles when things are all zerod out, but still overlapping
+                BlockPos.Mutable totalOverlap = new BlockPos.Mutable(0,0,0);
+
+                for (int j = 0; j < rooms.size(); j++) {
+                    if (i == j) continue;
+                    BlockBounds otherBounds = rooms.get(j).bounds();
+                    BlockBounds avoid = BlockBounds.of(
+                            otherBounds.min().subtract(new Vec3i(config.minSeparationX(), config.minSeparationY(), config.minSeparationZ())),
+                            otherBounds.max().add(new Vec3i(config.minSeparationX(), config.minSeparationY(), config.minSeparationZ()))
+                    );
+                    @Nullable BlockBounds intersect = main.bounds().intersection(avoid);
+                    if (intersect != null) {
+                        move = true;
+                        BlockPos magnitude = intersect.size();
+                        Vec3d centerDiff = main.bounds().center().subtract(avoid.center());
+                        totalOverlap.move(Utils.copySign(magnitude, centerDiff));
+                    }
+                }
+
+                if (move) {
+                    keepSteering = true;
+                    // TODO: Constants may need tweaking
+
+                    // Move it further (double it) TODO May need tweaking
+                    totalOverlap.move(totalOverlap);
+                    // Don't move the piece super far
+                    totalOverlap.clamp(Direction.Axis.X, -config.minSeparationX() * 5, config.minSeparationX() * 5);
+                    totalOverlap.clamp(Direction.Axis.Y, -config.minSeparationY() * 5, config.minSeparationY() * 5);
+                    totalOverlap.clamp(Direction.Axis.Z, -config.minSeparationZ() * 5, config.minSeparationZ() * 5);
+
+                    // Move the piece
+                    if (totalOverlap.getX() != 0 || totalOverlap.getY() != 0 || totalOverlap.getZ() != 0) {
+                        rooms.set(i, main.withTransform(MapTransform.translation(totalOverlap.getX(), totalOverlap.getY(), totalOverlap.getZ())));
+                    } else {
+                        // We're overlapping things, but the forces are cancelling out. Add some randomness to keep moving.
+                        // TODO: Constants may need tweaking
+                        BlockPos.Mutable boundsSize = main.bounds().size().mutableCopy();
+                        int steerX = Math.max(boundsSize.getX() / 4, 1);
+                        int steerY = Math.max(boundsSize.getY() / 4, 1);
+                        int steerZ = Math.max(boundsSize.getZ() / 4, 1);
+                        rooms.set(i, main.withTransform(MapTransform.translation(random.nextBetween(-steerX, steerX),
+                                        random.nextBetween(-steerY, steerY),
+                                        random.nextBetween(-steerZ, steerZ)
+                                ))
+                        );
+                    }
+                }
+            }
+        }
+        return rooms;
+    }
+
+    // TODO: Cache?
+    protected static DungeonPiece loadPiece(Identifier id, MinecraftServer server) throws IOException {
+        return new DungeonPiece(MapTemplateSerializer.loadFromResource(server, id));
+    }
+
+    // TODO: Cache? Parallelize? I'm not sure that I trust mc to handle parallelism though.
+    protected static List<DungeonPiece> loadPieces(List<Identifier> ids, MinecraftServer server) throws IOException {
+        List<DungeonPiece> pieces = new LinkedList<>();
+        for (Identifier id : ids) {
+            pieces.add(loadPiece(id, server));
+        }
+        return pieces;
+    }
+
+}

@@ -28,15 +28,17 @@ public class DungeonPiece {
     private final MapTemplate template;
     private final @Nullable MapTransform transform;
 
-
     public DungeonPiece(MapTemplate template) {
-        this(template, null);
+        this(template.getBounds(), findOpenings(template), template, null);
     }
 
-    public DungeonPiece(MapTemplate template, @Nullable MapTransform transform) {
-        this(template.getBounds(), findOpenings(template), template, transform);
-    }
-
+    /**
+     *
+     * @param bounds The bounds of the piece AFTER transforming
+     * @param openings The openings of the piece AFTER transforming
+     * @param template The template of the piece BEFORE transforming
+     * @param transform The transform to apply to the template before placing
+     */
     protected DungeonPiece(BlockBounds bounds, List<Opening> openings, MapTemplate template, @Nullable MapTransform transform) {
         this.bounds = bounds;
         this.openings = List.copyOf(openings);
@@ -118,7 +120,7 @@ public class DungeonPiece {
                 .filter(opening -> opening.direction().getOpposite().equals(matchOpposite))
                 .map(opening -> {
                     BlockPos diff = toMatch.bounds().min().subtract(opening.bounds().min()).offset(toMatch.direction());
-                    return new AStar.ProtoNode(opening, new DungeonPiece(template, MapTransform.translation(diff.getX(), diff.getY(), diff.getZ())));
+                    return new AStar.ProtoNode(opening, this.withTransform(MapTransform.translation(diff.getX(), diff.getY(), diff.getZ())));
                 });
     }
 
