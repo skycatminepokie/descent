@@ -13,6 +13,7 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 public class DungeonPiece {
+    public static final String OPENING_MARKER = "opening";
     /**
      * Bounds, transformed using transform.
      */
@@ -47,8 +48,9 @@ public class DungeonPiece {
     }
 
     protected static List<Opening> findOpenings(MapTemplate template) {
-        // Require all openings to be flat against the template's bounds
-        return new ArrayList<>(); // TODO
+        return template.getMetadata().getRegionBounds(OPENING_MARKER)
+                .map(openingBounds -> new Opening(openingBounds, template.getBounds()))
+                .toList();
     }
 
     public BlockBounds bounds() {
