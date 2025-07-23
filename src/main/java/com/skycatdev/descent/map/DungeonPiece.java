@@ -1,5 +1,7 @@
 package com.skycatdev.descent.map;
 
+import com.skycatdev.descent.Descent;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import org.jetbrains.annotations.Nullable;
@@ -7,7 +9,6 @@ import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
 import xyz.nucleoid.map_templates.MapTransform;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -28,9 +29,13 @@ public class DungeonPiece {
      */
     private final MapTemplate template;
     private final @Nullable MapTransform transform;
+    /**
+     * The id of the template
+     */
+    private final Identifier id;
 
-    public DungeonPiece(MapTemplate template) {
-        this(template.getBounds(), findOpenings(template), template, null);
+    public DungeonPiece(MapTemplate template, Identifier id) {
+        this(template.getBounds(), findOpenings(template, id, null), template, null, id);
     }
 
     /**
@@ -40,16 +45,60 @@ public class DungeonPiece {
      * @param template The template of the piece BEFORE transforming
      * @param transform The transform to apply to the template before placing
      */
-    protected DungeonPiece(BlockBounds bounds, List<Opening> openings, MapTemplate template, @Nullable MapTransform transform) {
+    protected DungeonPiece(BlockBounds bounds, List<Opening> openings, MapTemplate template, @Nullable MapTransform transform, Identifier id) {
         this.bounds = bounds;
         this.openings = List.copyOf(openings);
         this.template = template;
         this.transform = transform;
+        this.id = id;
     }
 
-    protected static List<Opening> findOpenings(MapTemplate template) {
-        return template.getMetadata().getRegionBounds(OPENING_MARKER)
-                .map(openingBounds -> new Opening(openingBounds, template.getBounds()))
+    protected static List<Opening> findOpenings(MapTemplate template, Identifier id, @Nullable MapTransform transform) {
+        BlockBounds map = template.getBounds();
+        Stream<BlockBounds> openingBounds = template.getMetadata().getRegionBounds(OPENING_MARKER);
+        if (transform != null) {
+            openingBounds = openingBounds.map(transform::transformedBounds);
+        }
+        return openingBounds.<Opening>mapMulti((bounds, adder) -> {
+                    BlockPos size = bounds.size();
+                    // The size component that is 0 will be one block thick. The corresponding opening component (min or max):
+                    // will match the min component of the map when the direction is negative
+                    // otherwise, it MUST match the max component of the map (the direction is positive)
+                    boolean added = false;
+                    if (size.getX() == 0) {
+                        if (bounds.min().getX() == map.min().getX()) {
+                            added = true;
+                            adder.accept(new Opening(bounds, Direction.from(Direction.Axis.X, Direction.AxisDirection.NEGATIVE)));
+                        }
+                        if (bounds.min().getX() == map.max().getX()) {
+                            added = true;
+                            adder.accept(new Opening(bounds, Direction.from(Direction.Axis.X, Direction.AxisDirection.POSITIVE)));
+                        }
+                    }
+                    if (size.getY() == 0) {
+                        if (bounds.min().getY() == map.min().getY()) {
+                            added = true;
+                            adder.accept(new Opening(bounds, Direction.from(Direction.Axis.Y, Direction.AxisDirection.NEGATIVE)));
+                        }
+                        if (bounds.min().getY() == map.max().getY()) {
+                            added = true;
+                            adder.accept(new Opening(bounds, Direction.from(Direction.Axis.Y, Direction.AxisDirection.POSITIVE)));
+                        }
+                    }
+                    if (size.getZ() == 0) {
+                        if (bounds.min().getZ() == map.min().getZ()) {
+                            added = true;
+                            adder.accept(new Opening(bounds, Direction.from(Direction.Axis.Z, Direction.AxisDirection.NEGATIVE)));
+                        }
+                        if (bounds.min().getZ() == map.max().getZ()) {
+                            added = true;
+                            adder.accept(new Opening(bounds, Direction.from(Direction.Axis.Z, Direction.AxisDirection.POSITIVE)));
+                        }
+                    }
+                    if (!added) {
+                        Descent.LOGGER.warn("Failed to find a matching opening for {}. This may affect dungeon generation.", id);
+                    }
+                })
                 .toList();
     }
 
@@ -102,10 +151,9 @@ public class DungeonPiece {
 
     public DungeonPiece withTransform(MapTransform transform) {
         BlockBounds bounds = transform.transformedBounds(this.bounds);
-        List<Opening> openings = this.openings.stream()
-                .map(opening -> opening.transformed(transform, bounds))
-                .toList();
-        return new DungeonPiece(bounds, openings, template, transform);
+
+        List<Opening> openings = findOpenings(template, id, transform);
+        return new DungeonPiece(bounds, openings, template, transform, id);
     }
 
     public MapTemplate toTemplate() {
@@ -134,60 +182,14 @@ public class DungeonPiece {
     }
 
     public record Opening(BlockBounds bounds, Direction direction, BlockPos center) {
-        /**
-         * @param bounds         The bounds of the opening.
-         * @param templateBounds The bounds of the template this is placed in.
-         */
-        public Opening(BlockBounds bounds, BlockBounds templateBounds) {
-            this(bounds, dirFromBounds(bounds, templateBounds), BlockPos.ofFloored(bounds.center()));
-        }
-
-        /**
-         * Get the direction of an opening based on the bounds of the opening and the bounds of the map.
-         * Openings must be one block thick and flush with a face of the map. The chosen opening direction
-         * should be considered arbitrary if placed entirely on an edge (read: where two or more wall meet).
-         */
-        public static Direction dirFromBounds(BlockBounds opening, BlockBounds map) {
-            BlockPos size = opening.size();
-            // The size component that is 0 will be one block thick. The corresponding opening component (min or max):
-            // will match the min component of the map when the direction is negative
-            // otherwise, it MUST match the max component of the map (the direction is positive)
-            if (size.getX() == 0) {
-                if (opening.min().getX() == map.min().getX()) {
-                    return Direction.from(Direction.Axis.X, Direction.AxisDirection.NEGATIVE);
-                }
-                if (opening.min().getX() == map.max().getX()) {
-                    return Direction.from(Direction.Axis.X, Direction.AxisDirection.POSITIVE);
-                }
-            }
-            if (size.getY() == 0) {
-                if (opening.min().getY() == map.min().getY()) {
-                    return Direction.from(Direction.Axis.Y, Direction.AxisDirection.NEGATIVE);
-                }
-                if (opening.min().getY() == map.max().getY()) {
-                    return Direction.from(Direction.Axis.Y, Direction.AxisDirection.POSITIVE);
-                }
-            }
-            if (size.getZ() == 0) {
-                if (opening.min().getZ() == map.min().getZ()) {
-                    return Direction.from(Direction.Axis.Z, Direction.AxisDirection.NEGATIVE);
-                }
-                if (opening.min().getZ() == map.max().getZ()) {
-                    return Direction.from(Direction.Axis.Z, Direction.AxisDirection.POSITIVE);
-                }
-            }
-            throw new IllegalArgumentException("At least one side of an opening must be 1 block thick and flush with the map's wall.");
-        }
-
-        public Opening transformed(MapTransform transform, BlockBounds transformedTemplateBounds) {
-            return new Opening(transform.transformedBounds(bounds), transformedTemplateBounds);
+        public Opening(BlockBounds bounds, Direction direction) {
+            this(bounds, direction, BlockPos.ofFloored(bounds.center()));
         }
 
         public boolean isConnected(Opening opening) {
             return opening.direction().getOpposite().equals(this.direction()) &&
                    opening.bounds().size().equals(this.bounds().size()) &&
                    opening.center().getManhattanDistance(this.center()) == 1;
-
         }
 
     }

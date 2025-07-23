@@ -136,7 +136,7 @@ public class DungeonGenerator {
 
     // TODO: Cache?
     protected static DungeonPiece loadPiece(Identifier id, MinecraftServer server) throws IOException {
-        return new DungeonPiece(MapTemplateSerializer.loadFromResource(server, id));
+        return new DungeonPiece(MapTemplateSerializer.loadFromResource(server, id), id);
     }
 
     // TODO: Cache? Parallelize? I'm not sure that I trust mc to handle parallelism though.
