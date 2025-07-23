@@ -62,7 +62,9 @@ public class DungeonPiece {
         Stream<BlockBounds> openingBounds = template.getMetadata().getRegionBounds(OPENING_MARKER);
         if (transform != null) {
             openingBounds = openingBounds.map(transform::transformedBounds);
+            map = transform.transformedBounds(map);
         }
+        BlockBounds finalMap = map;
         return openingBounds.<Opening>mapMulti((bounds, adder) -> {
                     BlockPos size = bounds.size();
                     // The size component that is 0 will be one block thick. The corresponding opening component (min or max):
@@ -70,31 +72,31 @@ public class DungeonPiece {
                     // otherwise, it MUST match the max component of the map (the direction is positive)
                     boolean added = false;
                     if (size.getX() == 0) {
-                        if (bounds.min().getX() == map.min().getX()) {
+                        if (bounds.min().getX() == finalMap.min().getX()) {
                             added = true;
                             adder.accept(new Opening(bounds, Direction.from(Direction.Axis.X, Direction.AxisDirection.NEGATIVE)));
                         }
-                        if (bounds.min().getX() == map.max().getX()) {
+                        if (bounds.min().getX() == finalMap.max().getX()) {
                             added = true;
                             adder.accept(new Opening(bounds, Direction.from(Direction.Axis.X, Direction.AxisDirection.POSITIVE)));
                         }
                     }
                     if (size.getY() == 0) {
-                        if (bounds.min().getY() == map.min().getY()) {
+                        if (bounds.min().getY() == finalMap.min().getY()) {
                             added = true;
                             adder.accept(new Opening(bounds, Direction.from(Direction.Axis.Y, Direction.AxisDirection.NEGATIVE)));
                         }
-                        if (bounds.min().getY() == map.max().getY()) {
+                        if (bounds.min().getY() == finalMap.max().getY()) {
                             added = true;
                             adder.accept(new Opening(bounds, Direction.from(Direction.Axis.Y, Direction.AxisDirection.POSITIVE)));
                         }
                     }
                     if (size.getZ() == 0) {
-                        if (bounds.min().getZ() == map.min().getZ()) {
+                        if (bounds.min().getZ() == finalMap.min().getZ()) {
                             added = true;
                             adder.accept(new Opening(bounds, Direction.from(Direction.Axis.Z, Direction.AxisDirection.NEGATIVE)));
                         }
-                        if (bounds.min().getZ() == map.max().getZ()) {
+                        if (bounds.min().getZ() == finalMap.max().getZ()) {
                             added = true;
                             adder.accept(new Opening(bounds, Direction.from(Direction.Axis.Z, Direction.AxisDirection.POSITIVE)));
                         }
