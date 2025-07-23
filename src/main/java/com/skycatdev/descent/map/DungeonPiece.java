@@ -28,14 +28,18 @@ public class DungeonPiece {
      * Don't mutate!
      */
     private final MapTemplate template;
-    private final @Nullable MapTransform transform;
+    private final StackedMapTransform transform;
     /**
      * The id of the template
      */
     private final Identifier id;
 
     public DungeonPiece(MapTemplate template, Identifier id) {
-        this(template.getBounds(), findOpenings(template, id, null), template, null, id);
+        this(template, id, new StackedMapTransform());
+    }
+
+    public DungeonPiece(MapTemplate template, Identifier id, StackedMapTransform transform) {
+        this(template.getBounds(), findOpenings(template, id, transform), template, transform, id);
     }
 
     /**
@@ -45,7 +49,7 @@ public class DungeonPiece {
      * @param template The template of the piece BEFORE transforming
      * @param transform The transform to apply to the template before placing
      */
-    protected DungeonPiece(BlockBounds bounds, List<Opening> openings, MapTemplate template, @Nullable MapTransform transform, Identifier id) {
+    protected DungeonPiece(BlockBounds bounds, List<Opening> openings, MapTemplate template, StackedMapTransform transform, Identifier id) {
         this.bounds = bounds;
         this.openings = List.copyOf(openings);
         this.template = template;
@@ -153,14 +157,11 @@ public class DungeonPiece {
         BlockBounds bounds = transform.transformedBounds(this.bounds);
 
         List<Opening> openings = findOpenings(template, id, transform);
-        return new DungeonPiece(bounds, openings, template, transform, id);
+        return new DungeonPiece(bounds, openings, template, this.transform.copyWith(transform), id);
     }
 
     public MapTemplate toTemplate() {
-        if (transform != null) {
-            return template.transformed(transform);
-        }
-        return template;
+        return template.transformed(transform);
     }
 
     /**
