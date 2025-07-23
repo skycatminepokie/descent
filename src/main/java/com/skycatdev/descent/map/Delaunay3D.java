@@ -124,7 +124,4 @@ public class Delaunay3D {
         return edgeSet;
     }
 
-    public static boolean almostEqual(Vec3d vec1, Vec3d vec2) {
-        return vec1.subtract(vec2).squaredDistanceTo(0, 0, 0) < 0.01;
-    }
 }

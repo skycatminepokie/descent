@@ -1,5 +1,6 @@
 package com.skycatdev.descent.map;
 
+import com.skycatdev.descent.Descent;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
 import org.jetbrains.annotations.NotNull;
@@ -97,7 +98,13 @@ public class AStar {
                 .map(DungeonPiece::bounds)
                 .toList();
         for (Edge connection : toConnect) {
-            findPath(paths, dungeonBounds, connection.u(), connection.v(), pieces, random);
+            for (Node node : findPath(paths, dungeonBounds, connection.u(), connection.v(), pieces, random)) {
+                if (node.piece() != null) { // Shouldn't be
+                    paths.add(node.piece());
+                } else {
+                    Descent.LOGGER.warn("Found a node with a null piece while generating a dungeon. Probably not good.");
+                }
+            }
         }
         return paths;
     }

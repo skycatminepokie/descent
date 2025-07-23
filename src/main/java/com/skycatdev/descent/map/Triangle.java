@@ -47,24 +47,12 @@ public class Triangle {
         return u;
     }
 
-    public void setU(DungeonPiece.Opening u) {
-        this.u = u;
-    }
-
     public DungeonPiece.Opening getV() {
         return v;
     }
 
-    public void setV(DungeonPiece.Opening v) {
-        this.v = v;
-    }
-
     public DungeonPiece.Opening getW() {
         return w;
-    }
-
-    public void setW(DungeonPiece.Opening w) {
-        this.w = w;
     }
 
     public boolean isBad() {

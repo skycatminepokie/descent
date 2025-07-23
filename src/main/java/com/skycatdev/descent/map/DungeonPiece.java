@@ -144,10 +144,6 @@ public class DungeonPiece {
          * Get the direction of an opening based on the bounds of the opening and the bounds of the map.
          * Openings must be one block thick and flush with a face of the map. The chosen opening direction
          * should be considered arbitrary if placed entirely on an edge (read: where two or more wall meet).
-         *
-         * @param opening
-         * @param map
-         * @return
          */
         public static Direction dirFromBounds(BlockBounds opening, BlockBounds map) {
             BlockPos size = opening.size();
