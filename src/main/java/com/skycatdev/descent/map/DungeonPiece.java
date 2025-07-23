@@ -106,6 +106,13 @@ public class DungeonPiece {
         return new DungeonPiece(bounds, openings, template, transform);
     }
 
+    public MapTemplate toTemplate() {
+        if (transform != null) {
+            return template.transformed(transform);
+        }
+        return template;
+    }
+
     /**
      * All the possible ways to match this piece's template to an opening by shifting
      * the piece. Must not account for rotations and mirrors.

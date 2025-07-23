@@ -2,16 +2,13 @@ package com.skycatdev.descent.map;
 
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 // Adapted from https://github.com/vazgriz/DungeonGenerator/blob/master/Assets/Prim.cs
 // See src/main/resources/third_party_licenses/vazgriz.txt
 
 public class Prim {
-    public static List<Edge> minimumSpanningTree(List<Edge> edges, DungeonPiece.Opening start) {
+    public static Set<Edge> minimumSpanningTree(Iterable<Edge> edges, DungeonPiece.Opening start) {
         Set<DungeonPiece.Opening> open = new HashSet<>();
         Set<DungeonPiece.Opening> closed = new HashSet<>();
         for (Edge edge : edges) {
@@ -21,7 +18,7 @@ public class Prim {
 
         closed.add(start);
 
-        List<Edge> results = new ArrayList<>();
+        Set<Edge> results = new HashSet<>();
 
         while (!open.isEmpty()) {
             @Nullable Edge chosen = null;

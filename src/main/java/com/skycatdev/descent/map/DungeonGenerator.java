@@ -17,15 +17,11 @@ import xyz.nucleoid.map_templates.MapTemplateSerializer;
 import xyz.nucleoid.map_templates.MapTransform;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class DungeonGenerator {
-    public static MapTemplate generate(MapConfig config, MinecraftServer server, Random random) throws IOException {
-        DungeonPiece start = loadPiece(config.starts().get(random), server);
-        DungeonPiece end = loadPiece(config.ends().get(random), server);
-        List<DungeonPiece> paths = loadPieces(config.paths(), server);
+    public static MapTemplate generate(MapConfig config, MinecraftServer server, Random random) throws IOException, NoSolutionException {
+        List<DungeonPiece> pathPieces = loadPieces(config.paths(), server);
         List<DungeonPiece> rooms = new ArrayList<>();
 
         for (int i = 0; i < config.numberOfRooms() - 2; i++) { // -2 to account for start and end
@@ -35,9 +31,46 @@ public class DungeonGenerator {
             rooms.add(room);
         }
 
+        DungeonPiece start = loadPiece(config.starts().get(random), server);
+        rooms.add(start); // Start
+        rooms.add(loadPiece(config.ends().get(random), server)); // End
+
         steerRooms(config, random, rooms);
 
-        return null; // TODO
+        List<DungeonPiece.Opening> openings = new LinkedList<>();
+
+        for (DungeonPiece room : rooms) {
+            openings.addAll(room.openings());
+        }
+
+        Set<Edge> allEdges = Delaunay3D.triangulate(openings);
+        Set<Edge> resultingEdges = Prim.minimumSpanningTree(allEdges, openings.get(random.nextBetween(0, openings.size())));
+
+        for (Edge edge : allEdges) {
+            // TODO: 10 is the constant that can be tweaked (chance of path being added back)
+            if (random.nextBetween(0, 100) < 10) {
+                resultingEdges.add(edge);
+            }
+        }
+
+        Collection<DungeonPiece> paths = AStar.generatePath(rooms, resultingEdges, pathPieces, random);
+
+        List<MapTemplate> templates = new LinkedList<>();
+        for (DungeonPiece room : rooms) {
+            templates.add(room.toTemplate());
+        }
+
+        for (DungeonPiece path : paths) {
+            templates.add(path.toTemplate());
+        }
+
+        MapTemplate map = templates.getFirst();
+
+        for (int i = 1; i < templates.size(); i++) {
+            map = MapTemplate.merged(templates.get(i - 1), templates.get(i));
+        }
+
+        return map;
     }
 
     @SuppressWarnings("UnusedReturnValue")

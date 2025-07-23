@@ -1,7 +1,7 @@
 package com.skycatdev.descent.map;
 
-import com.mojang.datafixers.util.Pair;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.random.Random;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.map_templates.BlockBounds;
@@ -20,8 +20,8 @@ public class AStar {
                                          Collection<BlockBounds> dungeon, // Everywhere we can't intersect - both paths and rooms
                                          DungeonPiece.Opening start,
                                          DungeonPiece.Opening end,
-                                         Collection<DungeonPiece> pieces,
-                                         Random random) throws NoSolutionException { // include all the rotations and mirrors
+                                         Collection<DungeonPiece> pieces,  // include all the rotations and mirrors
+                                         Random random) throws NoSolutionException {
         // Setup
         BlockPos startCenter = start.center();
         BlockPos endCenter = end.center();
@@ -89,15 +89,15 @@ public class AStar {
      * @return The additional pieces that make up the paths.
      */
     public static Collection<DungeonPiece> generatePath(Collection<DungeonPiece> base,
-                                                        Collection<Pair<DungeonPiece.Opening, DungeonPiece.Opening>> toConnect,
+                                                        Collection<Edge> toConnect,
                                                         Collection<DungeonPiece> pieces,
                                                         Random random) throws NoSolutionException {
         Collection<DungeonPiece> paths = new LinkedList<>();
         Collection<BlockBounds> dungeonBounds = base.stream()
                 .map(DungeonPiece::bounds)
                 .toList();
-        for (Pair<DungeonPiece.Opening, DungeonPiece.Opening> connection : toConnect) {
-            findPath(paths, dungeonBounds, connection.getFirst(), connection.getSecond(), pieces, random);
+        for (Edge connection : toConnect) {
+            findPath(paths, dungeonBounds, connection.u(), connection.v(), pieces, random);
         }
         return paths;
     }
