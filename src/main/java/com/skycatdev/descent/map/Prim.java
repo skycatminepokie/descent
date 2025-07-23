@@ -1,6 +1,5 @@
 package com.skycatdev.descent.map;
 
-import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -12,9 +11,9 @@ import java.util.Set;
 // See src/main/resources/third_party_licenses/vazgriz.txt
 
 public class Prim {
-    public static List<Edge> minimumSpanningTree(List<Edge> edges, Vec3d start) {
-        Set<Vec3d> open = new HashSet<>();
-        Set<Vec3d> closed = new HashSet<>();
+    public static List<Edge> minimumSpanningTree(List<Edge> edges, DungeonPiece.Opening start) {
+        Set<DungeonPiece.Opening> open = new HashSet<>();
+        Set<DungeonPiece.Opening> closed = new HashSet<>();
         for (Edge edge : edges) {
             open.add(edge.u());
             open.add(edge.v());
