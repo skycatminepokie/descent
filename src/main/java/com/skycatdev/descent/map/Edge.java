@@ -1,19 +1,12 @@
 package com.skycatdev.descent.map;
 
-import net.minecraft.util.math.Vec3d;
+public record Edge(DungeonPiece.Opening u, DungeonPiece.Opening v, double length) {
 
-public record Edge(Vec3d u, Vec3d v, double length) {
-
-    public Edge(Vec3d u, Vec3d v) {
-        this(u, v, u.subtract(v).length());
+    public Edge(DungeonPiece.Opening u, DungeonPiece.Opening v) {
+        this(u, v, u.center().getManhattanDistance(v.center()));
     }
 
     public double getLength() {
         return length;
-    }
-
-    public static boolean almostEqual(Edge a, Edge b) {
-        return (Delaunay3D.almostEqual(a.u(), b.u()) && Delaunay3D.almostEqual(a.v(), b.v())) ||
-               (Delaunay3D.almostEqual(a.u(), b.v()) && Delaunay3D.almostEqual(a.v(), b.u()));
     }
 }
