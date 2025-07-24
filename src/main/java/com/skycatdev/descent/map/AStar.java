@@ -74,8 +74,22 @@ public class AStar {
                     var finishingNode = fastestNodes.get(random.nextInt(fastestNodes.size())); // Choose a random one
                     return finishingNode.computePath();
                 }
+                // TODO open.addAll sister nodes
+                for (Node node : fastestNodes) {
+                    for (DungeonPiece.Opening opening : Objects.requireNonNull(node.piece()).openings()) {
+                        if (!node.opening().equals(opening)) { // TODO: Maybe find a way to not have to do this check
+                            int distFromNode = node.opening().center().getManhattanDistance(opening.center());
+                            open.add(new Node(opening,
+                                    node,
+                                    node.distFromStart() + distFromNode,
+                                    endCenter.getManhattanDistance(opening.center()),
+                                    node.piece()));
+                        }
+                    }
+                    // TODO closed.add(node); ?
+                }
 
-                open.addAll(fastestNodes);
+                // open.addAll(fastestNodes);
             }
 
             closed.add(parent);

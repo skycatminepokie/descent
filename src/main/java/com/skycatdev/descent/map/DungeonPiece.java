@@ -64,7 +64,7 @@ public class DungeonPiece {
             openingBounds = openingBounds.map(transform::transformedBounds);
             map = transform.transformedBounds(map);
         }
-        BlockBounds finalMap = map;
+        BlockBounds finalMap = map; // TODO: Move this into a conditional initialization
         return openingBounds.<Opening>mapMulti((bounds, adder) -> {
                     BlockPos size = bounds.size();
                     // The size component that is 0 will be one block thick. The corresponding opening component (min or max):
@@ -177,16 +177,30 @@ public class DungeonPiece {
         Direction matchOpposite = toMatch.direction().getOpposite();
         return openings.stream()
                 .filter(opening -> opening.bounds().size().equals(matchSize))
-                .filter(opening -> opening.direction().getOpposite().equals(matchOpposite))
+                .filter(opening -> opening.direction().equals(matchOpposite))
                 .map(opening -> {
                     BlockPos diff = toMatch.bounds().min().subtract(opening.bounds().min()).offset(toMatch.direction());
-                    return new AStar.ProtoNode(opening, this.withTransform(MapTransform.translation(diff.getX(), diff.getY(), diff.getZ())));
+                    MapTransform transform = MapTransform.translation(diff.getX(), diff.getY(), diff.getZ());
+                    return new AStar.ProtoNode(opening.transformed(transform), this.withTransform(transform));
                 });
     }
 
     public record Opening(BlockBounds bounds, Direction direction, BlockPos center) {
         public Opening(BlockBounds bounds, Direction direction) {
             this(bounds, direction, BlockPos.ofFloored(bounds.center()));
+        }
+
+        public Opening transformed(MapTransform transform) {
+            BlockPos transformedPosInDir = transform.transformedPoint(center.offset(direction));
+            BlockBounds transformedBounds = transform.transformedBounds(bounds);
+            BlockPos transformedCenter = transform.transformedPoint(center);
+            @Nullable Direction transformedDir = Direction.fromVector(transformedPosInDir.subtract(transformedCenter), null);
+            if (transformedDir == null) {
+                Descent.LOGGER.warn("Failed to transform the direction of an opening. Not sure what happened - this may affect dungeon generation.");
+                transformedDir = direction;
+            }
+
+            return new Opening(transformedBounds, transformedDir, transformedCenter);
         }
 
         public boolean isConnected(Opening opening) {

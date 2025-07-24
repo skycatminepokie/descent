@@ -44,11 +44,11 @@ public class DungeonGenerator {
         }
 
         Set<Edge> allEdges = Delaunay3D.triangulate(openings);
-        Set<Edge> resultingEdges = Prim.minimumSpanningTree(allEdges, openings.get(random.nextBetween(0, openings.size())));
+        Set<Edge> resultingEdges = Prim.minimumSpanningTree(allEdges, openings.get(random.nextBetween(0, openings.size() - 1)));
 
         for (Edge edge : allEdges) {
             // TODO: 10 is the constant that can be tweaked (chance of path being added back)
-            if (random.nextBetween(0, 100) < 10) {
+            if (random.nextBetween(0, 99) < 10) {
                 resultingEdges.add(edge);
             }
         }
