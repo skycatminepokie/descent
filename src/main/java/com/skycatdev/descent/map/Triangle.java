@@ -1,35 +1,44 @@
 package com.skycatdev.descent.map;
 
+import net.minecraft.util.math.Vec3d;
+
+import java.util.List;
 import java.util.Objects;
 
 public class Triangle {
-    protected DungeonPiece.Opening u;
-    protected DungeonPiece.Opening v;
-    protected DungeonPiece.Opening w;
-    protected boolean isBad; // TODO: get rid of this, this is stinky :(
+    protected Vec3d u;
+    protected Vec3d v;
+    protected Vec3d w;
+    protected boolean isBad;
 
-    public Triangle(DungeonPiece.Opening u, DungeonPiece.Opening v, DungeonPiece.Opening w) {
+    public Triangle(Vec3d u, Vec3d v, Vec3d w) {
         this.u = u;
         this.v = v;
         this.w = w;
     }
 
-    public static boolean congruent(Triangle t1, Triangle t2) {
-        boolean uu = t1.getU().equals(t2.getU());
-        boolean vv = t1.v.equals(t2.v);
-        boolean ww = t1.w.equals(t2.w);
+    public static boolean almostEqual(Triangle t1, Triangle t2) {
+        boolean uu = Delaunay3D.almostEqual(t1.u, t2.u);
+        boolean vv = Delaunay3D.almostEqual(t1.v, t2.v);
+        boolean ww = Delaunay3D.almostEqual(t1.w, t2.w);
         if (uu && vv && ww) return true;
-        boolean vw = t1.v.equals(t2.w);
-        boolean wv = t1.w.equals(t2.v);
+        boolean vw = Delaunay3D.almostEqual(t1.v, t2.w);
+        boolean wv = Delaunay3D.almostEqual(t1.w, t2.v);
         if (uu && vw && wv) return true;
-        boolean uv = t1.u.equals(t2.v);
-        boolean wu = t1.w.equals(t2.u);
+        boolean uv = Delaunay3D.almostEqual(t1.u, t2.v);
+        boolean wu = Delaunay3D.almostEqual(t1.w, t2.u);
         if (uv && vw && wu) return true;
-        boolean vu = t1.v.equals(t2.u);
+        boolean vu = Delaunay3D.almostEqual(t1.v, t2.u);
         if (uv && vu && ww) return true;
-        boolean uw = t1.u.equals(t2.w);
+        boolean uw = Delaunay3D.almostEqual(t1.u, t2.w);
         if (uw && vu && wv) return true;
         return uw && vv && wu;
+    }
+
+    private static boolean almostEqualOrdered(List<Vec3d> t1, List<Vec3d> t2) {
+        return Delaunay3D.almostEqual(t1.get(0), t2.get(0)) &&
+               Delaunay3D.almostEqual(t1.get(1), t2.get(1)) &&
+               Delaunay3D.almostEqual(t1.get(2), t2.get(2));
     }
 
     @Override
@@ -43,16 +52,28 @@ public class Triangle {
         return Objects.hash(u, v, w, isBad);
     }
 
-    public DungeonPiece.Opening getU() {
+    public Vec3d getU() {
         return u;
     }
 
-    public DungeonPiece.Opening getV() {
+    public void setU(Vec3d u) {
+        this.u = u;
+    }
+
+    public Vec3d getV() {
         return v;
     }
 
-    public DungeonPiece.Opening getW() {
+    public void setV(Vec3d v) {
+        this.v = v;
+    }
+
+    public Vec3d getW() {
         return w;
+    }
+
+    public void setW(Vec3d w) {
+        this.w = w;
     }
 
     public boolean isBad() {

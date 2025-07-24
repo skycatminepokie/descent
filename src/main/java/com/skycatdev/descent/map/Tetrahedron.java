@@ -1,23 +1,22 @@
 package com.skycatdev.descent.map;
 
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.Vec3i;
 
-public record Tetrahedron(DungeonPiece.Opening a, DungeonPiece.Opening b, DungeonPiece.Opening c, DungeonPiece.Opening d, Sphere circumsphere) {
+public record Tetrahedron(Vec3d a, Vec3d b, Vec3d c, Vec3d d, Sphere circumsphere) {
 
-    public Tetrahedron(DungeonPiece.Opening a, DungeonPiece.Opening b, DungeonPiece.Opening c, DungeonPiece.Opening d) {
-        this(a, b, c, d, Sphere.circumsphere(a.bounds().center(), b.bounds().center(), c.bounds().center(), d.bounds().center()));
+    public Tetrahedron(Vec3d a, Vec3d b, Vec3d c, Vec3d d) {
+        this(a, b, c, d, Sphere.circumsphere(a, b, c, d));
     }
 
-    public boolean hasOpening(DungeonPiece.Opening opening) {
-        return opening.equals(a) ||
-               opening.equals(b) ||
-               opening.equals(c) ||
-               opening.equals(d);
+    public boolean hasVertex(Vec3d point) {
+        return Delaunay3D.almostEqual(point, a) ||
+               Delaunay3D.almostEqual(point, b) ||
+               Delaunay3D.almostEqual(point, c) ||
+               Delaunay3D.almostEqual(point, d);
     }
 
-    public boolean circumsphereContains(Vec3i vec) {
-        return Vec3d.of(vec).subtract(circumsphere.center()).squaredDistanceTo(0, 0, 0) <= circumsphere.radiusSquared();
+    public boolean circumsphereContains(Vec3d vec) {
+        return vec.subtract(circumsphere.center()).squaredDistanceTo(0, 0, 0) <= circumsphere.radiusSquared();
     }
 
 }
