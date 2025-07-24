@@ -54,12 +54,17 @@ public class AStar {
             // Generate successors
             var nodesByOpening = pieces.stream() // TODO: Parallelize?
                     .flatMap(piece -> piece.matchedWith(parent.opening())) // Find candidate openings
+                    // Don't explore closed places TODO make sure this makes sense
+                    .filter(proto -> closed.stream()
+                            .noneMatch(closedNode -> closedNode.opening().equals(proto.opening())))
                     .filter(candidate -> dungeon.stream() // Find valid openings (don't intersect things)
                             .noneMatch(bounds -> bounds.intersects(candidate.piece().bounds()))) // TODO: Verify that this blocks all intersections
+                    // Don't overlap ancestors
+                    .filter(candidate -> !parent.overlaps(candidate.piece().bounds()) && !parent.overlapsAncestors(candidate.piece().bounds()))
                     .map(proto -> Node.fromProto(proto, parent, endCenter))
                     .<Node>mapMulti((valid, nodeAdder) -> traverseAlreadyPlaced(valid, paths, nodeAdder, endCenter))
                     .filter(node -> Stream.concat(open.stream(), closed.stream()) // Only keep faster ones
-                            .noneMatch(other -> other.pathLength() < node.pathLength() && other.opening().equals(node.opening()))) // There are none at the same position with faster paths. TODO More random: if path lengths equal and openings equal, randomly choose whether to keep
+                            .noneMatch(other -> other.pathLength() <= node.pathLength() && other.opening().equals(node.opening()))) // There are none at the same position with faster paths. TODO More random: if path lengths equal and openings equal, randomly choose whether to keep
                     // Make sure that two nodes with same opening but different lengths don't both end up on the open list
                     .collect(Collectors.groupingBy(Node::opening)); // Map of opening to a list of nodes that have that opening
 
@@ -75,24 +80,24 @@ public class AStar {
                     return finishingNode.computePath();
                 }
                 // TODO open.addAll sister nodes
-                for (Node node : fastestNodes) {
-                    for (DungeonPiece.Opening opening : Objects.requireNonNull(node.piece()).openings()) {
-                        if (!node.opening().equals(opening)) { // TODO: Maybe find a way to not have to do this check
-                            int distFromNode = node.opening().center().getManhattanDistance(opening.center());
-                            open.add(new Node(opening,
-                                    node,
-                                    node.distFromStart() + distFromNode,
-                                    endCenter.getManhattanDistance(opening.center()),
-                                    node.piece()));
-                        }
-                    }
-                    // TODO closed.add(node); ?
-                }
-
-                // open.addAll(fastestNodes);
+//                for (Node node : fastestNodes) {
+//                    for (DungeonPiece.Opening opening : Objects.requireNonNull(node.piece()).openings()) {
+//                        if (!node.opening().equals(opening)) { // TODO: Maybe find a way to not have to do this check
+//                            int distFromNode = node.opening().center().getManhattanDistance(opening.center());
+//                            open.add(new Node(opening,
+//                                    node,
+//                                    node.distFromStart() + distFromNode,
+//                                    endCenter.getManhattanDistance(opening.center()),
+//                                    node.piece()));
+//                        }
+//                    }
+                Descent.LOGGER.info("Adding {} open nodes", fastestNodes.size()); // TODO: DEBUG ONLY
+                open.addAll(fastestNodes);
             }
-
             closed.add(parent);
+            if (open.isEmpty()) {
+                return parent.computePath(); // TODO: DEBUG ONLY
+            }
         }
         throw new NoSolutionException(); // TODO: Logging
     }
@@ -113,10 +118,8 @@ public class AStar {
                 .toList();
         for (Edge connection : toConnect) {
             for (Node node : findPath(paths, dungeonBounds, connection.u(), connection.v(), pieces, random)) {
-                if (node.piece() != null) { // Shouldn't be
+                if (node.piece() != null) { // The start
                     paths.add(node.piece());
-                } else {
-                    Descent.LOGGER.warn("Found a node with a null piece while generating a dungeon. Probably not good.");
                 }
             }
         }
@@ -149,6 +152,20 @@ public class AStar {
         // If there is one, recurse. The next Nodes we make will have the root Node's piece
         // This signifies that we have access to those Nodes only if the root piece is placed.
 
+        // Find seed
+//        for (DungeonPiece piece : placed) {
+//            DungeonPiece.@Nullable Opening connected = piece.getConnected(prev.opening());
+//            if (connected != null) {
+//                // Find anything else connected to this
+//                for (DungeonPiece.Opening opening : piece.openings()) {
+//                    if (opening != connected) {
+//
+//                    }
+//                }
+//            }
+//
+//        }
+
         for (DungeonPiece piece : placed) {
             DungeonPiece.@Nullable Opening connected = piece.getConnected(prev.opening());
             if (connected != null) {
@@ -158,7 +175,7 @@ public class AStar {
                 piecesLeft.remove(piece); // Don't check this one - we don't want a loop, and we already handle this one
 
                 for (DungeonPiece.Opening candidate : piece.openings()) {
-                    if (candidate != connected) { // Don't add the connected one - that's not a leaf
+                    if (candidate.equals(connected)) { // Don't add the connected one - that's not a leaf
                         traverseAlreadyPlaced(new Node(candidate,
                                 prev, // Parent
                                 prev.distFromStart() + prev.opening().center().getManhattanDistance(candidate.center()), // dist from start
@@ -200,6 +217,22 @@ public class AStar {
                     parent.distFromStart() + parent.opening().center().getManhattanDistance(proto.opening().center()), // dist from start
                     proto.opening().center().getManhattanDistance(endCenter), // heuristic
                     proto.piece());
+        }
+
+        public boolean overlaps(BlockBounds bounds) {
+            if (piece != null) {
+                return piece.bounds().intersects(bounds);
+            }
+            return false;
+        }
+
+        public boolean overlapsAncestors(BlockBounds bounds) {
+            @Nullable Node ancestor = parent;
+            while (ancestor != null) {
+                if (ancestor.overlaps(bounds)) return true;
+                ancestor = ancestor.parent;
+            }
+            return false;
         }
 
         /**

@@ -19,7 +19,7 @@ public class Delaunay3D {
      but one of the triangles - that's still 9 checks instead of 4, assuming the triangle was clever enough to check
      only 3.
     */
-    public static Set<Edge> triangulate(List<DungeonPiece.Opening> openings) {
+    public static Set<Edge> triangulate(List<DungeonPiece> pieces) {
         /*
          General idea: Make one big tetrahedron that encompasses it all.
          For each vertex, find all tetrahedra that contain it. Break those down into triangles.
@@ -32,12 +32,12 @@ public class Delaunay3D {
         // Find bounds
 
         double maxX, maxY, maxZ;
-        double minX = maxX = openings.getFirst().center().getX();
-        double minY = maxY = openings.getFirst().center().getY();
-        double minZ = maxZ = openings.getFirst().center().getZ();
+        double minX = maxX = pieces.getFirst().bounds().center().getX();
+        double minY = maxY = pieces.getFirst().bounds().center().getY();
+        double minZ = maxZ = pieces.getFirst().bounds().center().getZ();
 
-        for (DungeonPiece.Opening opening : openings) {
-            BlockPos vertex = opening.center();
+        for (DungeonPiece piece : pieces) {
+            BlockPos vertex = piece.bounds().center();
             if (vertex.getX() < minX) minX = vertex.getX();
             if (vertex.getX() > maxX) maxX = vertex.getX();
             if (vertex.getY() < minY) minY = vertex.getY();
@@ -67,7 +67,7 @@ public class Delaunay3D {
         tetrahedra.add(new Tetrahedron(o1, o2, o3, o4));
 
         // For each vertex, find all tetrahedra that contain it
-        for (DungeonPiece.Opening opening : openings) {
+        for (DungeonPiece.Opening opening : pieces) {
             Vec3i vertex = opening.center();
             List<Triangle> triangles = new LinkedList<>();
 

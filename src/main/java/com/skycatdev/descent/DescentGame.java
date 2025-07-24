@@ -2,7 +2,6 @@ package com.skycatdev.descent;
 
 import com.skycatdev.descent.config.DescentConfig;
 import com.skycatdev.descent.map.DungeonGenerator;
-import com.skycatdev.descent.map.NoSolutionException;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Vec3d;
@@ -18,8 +17,6 @@ import xyz.nucleoid.plasmid.api.game.player.JoinAcceptorResult;
 import xyz.nucleoid.plasmid.api.game.player.JoinOffer;
 import xyz.nucleoid.plasmid.api.game.rule.GameRuleType;
 import xyz.nucleoid.plasmid.api.game.world.generator.TemplateChunkGenerator;
-
-import java.io.IOException;
 
 public class DescentGame {
     private final DescentConfig config;
@@ -39,8 +36,10 @@ public class DescentGame {
         try {
             worldConfig = new RuntimeWorldConfig()
                     .setGenerator(new TemplateChunkGenerator(context.server(), DungeonGenerator.generate(config.mapConfig(), context.server(), Random.create())))
+//                    .setGenerator(new TemplateChunkGenerator(context.server(), MapTemplateSerializer.loadFrom(new FileInputStream(context.server().getRunDirectory().resolve("builtsponge.nbt").toFile()), context.server().getRegistryManager())))
                     .setTimeOfDay(6000);
-        } catch (IOException | NoSolutionException e) {
+//        } catch (IOException | NoSolutionException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e); // TODO: Don't crash
         }
 
@@ -55,10 +54,10 @@ public class DescentGame {
     }
 
     private void onJoin(ServerPlayerEntity player) {
-        player.changeGameMode(GameMode.ADVENTURE);
+        player.changeGameMode(GameMode.SPECTATOR); // TODO WRONG
     }
 
     private JoinAcceptorResult onAccept(JoinAcceptor acceptor) {
-        return acceptor.teleport(world, new Vec3d(0, 65, 0));
+        return acceptor.teleport(world, new Vec3d(0, 0, 0)); // TODO tp to start
     }
 }

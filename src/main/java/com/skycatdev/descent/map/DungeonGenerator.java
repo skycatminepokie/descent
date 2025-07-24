@@ -2,6 +2,7 @@ package com.skycatdev.descent.map;
 
 import com.skycatdev.descent.config.MapConfig;
 import com.skycatdev.descent.utils.Utils;
+import net.minecraft.block.Blocks;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
@@ -44,12 +45,13 @@ public class DungeonGenerator {
         }
 
         Set<Edge> allEdges = Delaunay3D.triangulate(openings);
+        // TODO: Here's a problem - we're making an MST of the openings, NOT the pieces
         Set<Edge> resultingEdges = Prim.minimumSpanningTree(allEdges, openings.get(random.nextBetween(0, openings.size() - 1)));
 
         for (Edge edge : allEdges) {
             // TODO: 10 is the constant that can be tweaked (chance of path being added back)
             if (random.nextBetween(0, 99) < 10) {
-                resultingEdges.add(edge);
+//                resultingEdges.add(edge); // TODO: COMMENTED FOR DEBUG
             }
         }
 
@@ -67,9 +69,10 @@ public class DungeonGenerator {
         MapTemplate map = templates.getFirst();
 
         for (int i = 1; i < templates.size(); i++) {
-            map = MapTemplate.merged(templates.get(i - 1), templates.get(i));
+            map = MapTemplate.merged(map, templates.get(i));
         }
 
+        map.setBlockState(BlockPos.ORIGIN, Blocks.SPONGE.getDefaultState());
         return map;
     }
 

@@ -23,9 +23,9 @@
         "weight": 1
       }
     ],
-    "numberOfRooms": 9,
-    "minSeparationX": 5,
-    "minSeparationY": 5,
-    "minSeparationZ": 5
+    "numberOfRooms": 2,
+    "minSeparationX": 2,
+    "minSeparationY": 2,
+    "minSeparationZ": 2
   }
 }
