@@ -1,6 +1,7 @@
 package com.skycatdev.descent.map;
 
 import com.skycatdev.descent.Descent;
+import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
 import org.jetbrains.annotations.NotNull;
@@ -17,6 +18,17 @@ import java.util.stream.Stream;
  * A (mostly) A* pathfinding algorithm. Allows for staircases that take up multiple cells.
  */
 public class AStar {
+    /**
+     *
+     * @param paths Already placed paths
+     * @param dungeon Everywhere we can't intersect - both paths and rooms
+     * @param start The start of the path
+     * @param end The end of the path
+     * @param pieces The pieces we can use to make the path
+     * @param random
+     * @return
+     * @throws NoSolutionException
+     */
     protected static List<Node> findPath(Collection<DungeonPiece> paths,
                                          Collection<BlockBounds> dungeon, // Everywhere we can't intersect - both paths and rooms
                                          DungeonPiece.Opening start,
@@ -43,7 +55,7 @@ public class AStar {
         // Algorithm
         List<Node> open = new LinkedList<>();
         List<Node> closed = new LinkedList<>();
-        open.add(new Node(start, null, 0, dist, null));
+        traverseAlreadyPlaced(new Node(start, null, 0, dist, null), paths, open::add, endCenter);
 
         while (!open.isEmpty()) {
             Node parent = open.stream()
@@ -95,9 +107,9 @@ public class AStar {
                 open.addAll(fastestNodes);
             }
             closed.add(parent);
-            if (open.isEmpty()) {
-                return parent.computePath(); // TODO: DEBUG ONLY
-            }
+//            if (open.isEmpty()) {
+//                return parent.computePath(); // TODO: DEBUG ONLY
+//            }
         }
         throw new NoSolutionException(); // TODO: Logging
     }
@@ -109,15 +121,21 @@ public class AStar {
      * @return The additional pieces that make up the paths.
      */
     public static Collection<DungeonPiece> generatePath(Collection<DungeonPiece> base,
-                                                        Collection<Edge> toConnect,
+                                                        Collection<Pair<DungeonPiece, DungeonPiece>> toConnect,
                                                         Collection<DungeonPiece> pieces,
                                                         Random random) throws NoSolutionException {
         Collection<DungeonPiece> paths = new LinkedList<>();
         Collection<BlockBounds> dungeonBounds = base.stream()
                 .map(DungeonPiece::bounds)
                 .toList();
-        for (Edge connection : toConnect) {
-            for (Node node : findPath(paths, dungeonBounds, connection.u(), connection.v(), pieces, random)) {
+        for (Pair<DungeonPiece, DungeonPiece> connection : toConnect) {
+            List<DungeonPiece.Opening> leftOpenings = connection.getLeft().openings();
+            DungeonPiece.Opening start = leftOpenings.get(random.nextBetween(0, leftOpenings.size() - 1));
+            List<DungeonPiece.Opening> rightOpenings = connection.getRight().openings();
+            DungeonPiece.Opening end = rightOpenings.get(random.nextBetween(0, rightOpenings.size() - 1));
+
+
+            for (Node node : findPath(paths, dungeonBounds, start, end, pieces, random)) {
                 if (node.piece() != null) { // The start
                     paths.add(node.piece());
                 }

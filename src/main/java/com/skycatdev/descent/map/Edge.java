@@ -16,4 +16,17 @@ public record Edge(Vec3d u, Vec3d v, double length) {
         return (Delaunay3D.almostEqual(a.u(), b.u()) && Delaunay3D.almostEqual(a.v(), b.v())) ||
                (Delaunay3D.almostEqual(a.u(), b.v()) && Delaunay3D.almostEqual(a.v(), b.u()));
     }
+
+    public boolean has(Vec3d vec) {
+        return u.equals(vec) || v.equals(vec);
+    }
+
+    public boolean hasAny(Vec3d... vecs) {
+        for (Vec3d vec : vecs) {
+            if (u.equals(vec) || v.equals(vec)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

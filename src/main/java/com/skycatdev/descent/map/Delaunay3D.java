@@ -15,7 +15,7 @@ public class Delaunay3D {
      but one of the triangles - that's still 9 checks instead of 4, assuming the triangle was clever enough to check
      only 3.
     */
-    private static Set<Edge> triangulate(List<Vec3d> vertices) {
+    public static Set<Edge> triangulate(List<Vec3d> vertices) {
         /*
          General idea: Make one big tetrahedron that encompasses it all.
          For each vertex, find all tetrahedra that contain it. Break those down into triangles.
@@ -90,12 +90,12 @@ public class Delaunay3D {
             }
         }
 
-        // Get rid of the tetrahedra that have the vertices of the big tetrahedron - now we don't have those points in
-        // our graph.
-        tetrahedra.removeIf(t -> t.hasVertex(p1) ||
-                                 t.hasVertex(p2) ||
-                                 t.hasVertex(p3) ||
-                                 t.hasVertex(p4));
+//        // Get rid of the tetrahedra that have the vertices of the big tetrahedron - now we don't have those points in
+//        // our graph.
+//        tetrahedra.removeIf(t -> t.hasVertex(p1) ||
+//                                 t.hasVertex(p2) ||
+//                                 t.hasVertex(p3) ||
+//                                 t.hasVertex(p4));
 
         HashSet<Edge> edgeSet = new HashSet<>();
 
@@ -108,6 +108,9 @@ public class Delaunay3D {
             edgeSet.add(new Edge(t.d(), t.c()));
         }
 
+        // Get rid of the tetrahedra that have the vertices of the big tetrahedron - now we don't have those points in
+        // our graph.
+        edgeSet.removeIf(edge -> edge.hasAny(p1, p2, p3, p4)); // TODO Maybe don't add them in the first place
         // Return all the unique edges
         return edgeSet;
     }

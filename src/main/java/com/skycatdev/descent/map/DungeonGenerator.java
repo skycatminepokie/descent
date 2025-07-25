@@ -5,6 +5,7 @@ import com.skycatdev.descent.utils.Utils;
 import net.minecraft.block.Blocks;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
@@ -39,23 +40,36 @@ public class DungeonGenerator {
         steerRooms(config, random, rooms);
 
         List<DungeonPiece.Opening> openings = new LinkedList<>();
+        // Possibly better than a lookup, but this will do
+        Map<Vec3d, DungeonPiece> pieceLookup = new HashMap<>();
+        List<Vec3d> centers = new LinkedList<>();
 
         for (DungeonPiece room : rooms) {
+            Vec3d center = room.bounds().center();
+            centers.add(center);
+            pieceLookup.put(center, room);
             openings.addAll(room.openings());
         }
 
-        Set<Edge> allEdges = Delaunay3D.triangulate(openings);
-        // TODO: Here's a problem - we're making an MST of the openings, NOT the pieces
-        Set<Edge> resultingEdges = Prim.minimumSpanningTree(allEdges, openings.get(random.nextBetween(0, openings.size() - 1)));
+
+        Set<Edge> allEdges = Delaunay3D.triangulate(centers);
+        Set<Edge> resultingEdges = Prim.minimumSpanningTree(allEdges, centers.get(random.nextBetween(0, centers.size() - 1)));
 
         for (Edge edge : allEdges) {
             // TODO: 10 is the constant that can be tweaked (chance of path being added back)
             if (random.nextBetween(0, 99) < 10) {
-//                resultingEdges.add(edge); // TODO: COMMENTED FOR DEBUG
+                resultingEdges.add(edge);
             }
         }
 
-        Collection<DungeonPiece> paths = AStar.generatePath(rooms, resultingEdges, pathPieces, random);
+        List<Pair<DungeonPiece, DungeonPiece>> connections = new LinkedList<>();
+
+        // TODO: Don't allow b -> a if we have a -> b
+        for (Edge edge : resultingEdges) {
+            connections.add(new Pair<>(pieceLookup.get(edge.u()), pieceLookup.get(edge.v())));
+        }
+
+        Collection<DungeonPiece> paths = AStar.generatePath(rooms, connections, pathPieces, random);
 
         List<MapTemplate> templates = new LinkedList<>();
         for (DungeonPiece room : rooms) {
@@ -70,6 +84,11 @@ public class DungeonGenerator {
 
         for (int i = 1; i < templates.size(); i++) {
             map = MapTemplate.merged(map, templates.get(i));
+        }
+
+        int y = map.getBounds().min().getY();
+        if (y < 0) {
+            map = map.translated(0, -y, 0);
         }
 
         map.setBlockState(BlockPos.ORIGIN, Blocks.SPONGE.getDefaultState());
