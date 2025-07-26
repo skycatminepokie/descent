@@ -6,6 +6,7 @@ import xyz.nucleoid.map_templates.MapTransform;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class StackedMapTransform implements MapTransform {
     protected final List<MapTransform> transforms;
@@ -43,5 +44,16 @@ public class StackedMapTransform implements MapTransform {
         }
 
         return ret;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof StackedMapTransform that)) return false;
+        return Objects.equals(transforms, that.transforms);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(transforms);
     }
 }

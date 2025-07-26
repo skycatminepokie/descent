@@ -30,49 +30,69 @@ public class AStar {
      * @throws NoSolutionException
      */
     protected static List<Node> findPath(Collection<DungeonPiece> paths,
-                                         Collection<BlockBounds> dungeon, // Everywhere we can't intersect - both paths and rooms
-                                         DungeonPiece.Opening start,
-                                         DungeonPiece.Opening end,
-                                         Collection<DungeonPiece> pieces,  // include all the rotations and mirrors
+                                         Collection<BlockBounds> dungeon,
+                                         DungeonPiece start,
+                                         DungeonPiece end,
+                                         Collection<DungeonPiece> pieces,
                                          Random random) throws NoSolutionException {
         // Setup
-        BlockPos startCenter = start.center();
-        BlockPos endCenter = end.center();
+        DungeonPiece.Opening startOpening;
+        DungeonPiece.Opening endOpening;
+
+        if (start.equals(end)) {
+            if (start.openings().size() < 2) {
+                return List.of();
+            }
+            int a = random.nextBetween(0, start.openings().size() - 1);
+            int b = random.nextBetween(0, start.openings().size() - 1);
+            while (b == a) {
+                b = random.nextBetween(0, start.openings().size() - 1);
+            }
+            startOpening = start.openings().get(a);
+            endOpening = start.openings().get(b);
+        } else {
+            startOpening = start.openings().get(random.nextBetween(0, start.openings().size() - 1));
+            endOpening = end.openings().get(random.nextBetween(0, end.openings().size() - 1));
+        }
+
+        BlockPos startCenter = startOpening.center();
+        BlockPos endCenter = endOpening.center();
         int dist = startCenter.getManhattanDistance(endCenter);
 
         // Preconditions
-        if (start.equals(end) || dist == 0) {
-            return new ArrayList<>(); // TODO: Logging
-        }
-
         if (dist == 1) {
-            if (start.direction().getOpposite().equals(end.direction())) {
-                return new ArrayList<>();
+            if (startOpening.direction().getOpposite().equals(endOpening.direction())) {
+                return List.of();
             }
-            throw new NoSolutionException(); // TODO: Logging
+            // throw new NoSolutionException("Pieces are too close, and the openings are facing the wrong direction"); // TODO: Retry with diff openings
         }
 
         // Algorithm
         List<Node> open = new LinkedList<>();
         List<Node> closed = new LinkedList<>();
-        traverseAlreadyPlaced(new Node(start, null, 0, dist, null), paths, open::add, endCenter);
+        traverseAlreadyPlaced(new Node(startOpening, null, 0, dist, null), paths, open::add, endCenter);
 
         while (!open.isEmpty()) {
             Node parent = open.stream()
                     .min(Comparator.comparingDouble(Node::pathLength))
-                    .orElseThrow(() -> new RuntimeException("Open list was not empty, but its stream was?"));
+                    .orElseThrow(() -> new ConcurrentModificationException("Open list was not empty, but its stream was?"));
             open.remove(parent); // TODO: This might be slow. Use open/closed sets instead of lists?
 
             // Generate successors
             var nodesByOpening = pieces.stream() // TODO: Parallelize?
-                    .flatMap(piece -> piece.matchedWith(parent.opening())) // Find candidate openings
-                    // Don't explore closed places TODO make sure this makes sense
-                    .filter(proto -> closed.stream()
-                            .noneMatch(closedNode -> closedNode.opening().equals(proto.opening())))
-                    .filter(candidate -> dungeon.stream() // Find valid openings (don't intersect things)
+                    .flatMap(piece -> piece.matchedWith(parent.opening())) // Find candidate nodes
+                    .filter(candidate -> dungeon.stream() // Remove nodes with pieces that intersect the dungeon
                             .noneMatch(bounds -> bounds.intersects(candidate.piece().bounds()))) // TODO: Verify that this blocks all intersections
-                    // Don't overlap ancestors
+                    // Remove nodes with pieces that intersect their ancestors
                     .filter(candidate -> !parent.overlaps(candidate.piece().bounds()) && !parent.overlapsAncestors(candidate.piece().bounds()))
+                    // We've got a piece and opening, now we need a ProtoNode for all its siblings (the next generation)
+                    .<ProtoNode>mapMulti((valid, adder) -> {
+                        for (DungeonPiece.Opening opening : valid.piece().openings()) {
+                            if (!opening.equals(valid.opening())) {
+                                adder.accept(new ProtoNode(opening, valid.piece()));
+                            }
+                        }
+                    })
                     .map(proto -> Node.fromProto(proto, parent, endCenter))
                     .<Node>mapMulti((valid, nodeAdder) -> traverseAlreadyPlaced(valid, paths, nodeAdder, endCenter))
                     .filter(node -> Stream.concat(open.stream(), closed.stream()) // Only keep faster ones
@@ -87,29 +107,14 @@ public class AStar {
                 // Get only the fastest ones for this opening
                 List<Node> fastestNodes = getFastest(nodes);
 
-                if (entry.getKey().isConnected(end)) { // We've found node(s) next to the end!
+                if (entry.getKey().isConnected(endOpening)) { // We've found node(s) next to the end!
                     var finishingNode = fastestNodes.get(random.nextInt(fastestNodes.size())); // Choose a random one
                     return finishingNode.computePath();
                 }
-                // TODO open.addAll sister nodes
-//                for (Node node : fastestNodes) {
-//                    for (DungeonPiece.Opening opening : Objects.requireNonNull(node.piece()).openings()) {
-//                        if (!node.opening().equals(opening)) { // TODO: Maybe find a way to not have to do this check
-//                            int distFromNode = node.opening().center().getManhattanDistance(opening.center());
-//                            open.add(new Node(opening,
-//                                    node,
-//                                    node.distFromStart() + distFromNode,
-//                                    endCenter.getManhattanDistance(opening.center()),
-//                                    node.piece()));
-//                        }
-//                    }
                 Descent.LOGGER.info("Adding {} open nodes", fastestNodes.size()); // TODO: DEBUG ONLY
                 open.addAll(fastestNodes);
             }
             closed.add(parent);
-//            if (open.isEmpty()) {
-//                return parent.computePath(); // TODO: DEBUG ONLY
-//            }
         }
         throw new NoSolutionException(); // TODO: Logging
     }
@@ -129,13 +134,7 @@ public class AStar {
                 .map(DungeonPiece::bounds)
                 .toList();
         for (Pair<DungeonPiece, DungeonPiece> connection : toConnect) {
-            List<DungeonPiece.Opening> leftOpenings = connection.getLeft().openings();
-            DungeonPiece.Opening start = leftOpenings.get(random.nextBetween(0, leftOpenings.size() - 1));
-            List<DungeonPiece.Opening> rightOpenings = connection.getRight().openings();
-            DungeonPiece.Opening end = rightOpenings.get(random.nextBetween(0, rightOpenings.size() - 1));
-
-
-            for (Node node : findPath(paths, dungeonBounds, start, end, pieces, random)) {
+            for (Node node : findPath(paths, dungeonBounds, connection.getLeft(), connection.getRight(), pieces, random)) {
                 if (node.piece() != null) { // The start
                     paths.add(node.piece());
                 }
@@ -193,7 +192,7 @@ public class AStar {
                 piecesLeft.remove(piece); // Don't check this one - we don't want a loop, and we already handle this one
 
                 for (DungeonPiece.Opening candidate : piece.openings()) {
-                    if (candidate.equals(connected)) { // Don't add the connected one - that's not a leaf
+                    if (!candidate.equals(connected)) { // Don't add the connected one - that's not a leaf
                         traverseAlreadyPlaced(new Node(candidate,
                                 prev, // Parent
                                 prev.distFromStart() + prev.opening().center().getManhattanDistance(candidate.center()), // dist from start
