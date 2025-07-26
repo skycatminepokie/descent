@@ -3,7 +3,10 @@ package com.skycatdev.descent.utils;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
+import net.minecraft.util.math.random.Random;
 import org.jetbrains.annotations.Contract;
+
+import java.util.List;
 
 public class Utils {
     public static Vec3i copySign(Vec3i magnitude, Vec3d sign) {
@@ -45,5 +48,12 @@ public class Utils {
                 Math.abs(a.getY()) > Math.abs(b.getY()) ? a.getY() : b.getY(),
                 Math.abs(a.getZ()) > Math.abs(b.getZ()) ? a.getZ() : b.getZ()
         );
+    }
+
+    public static <T> T randomFromList(List<T> ts, Random random) {
+        if (ts.isEmpty()) {
+            throw new IllegalArgumentException("List must not be empty");
+        }
+        return ts.get(random.nextInt(ts.size()));
     }
 }

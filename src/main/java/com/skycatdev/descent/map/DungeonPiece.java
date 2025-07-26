@@ -176,24 +176,15 @@ public class DungeonPiece {
         BlockPos matchSize = toMatch.bounds().size();
         Direction matchOpposite = toMatch.direction().getOpposite();
 
-        @Nullable Opening match = null;
-        for (Opening opening : openings) {
-            if (opening.bounds().size().equals(matchSize) &&
-                opening.direction().equals(matchOpposite)) {
-                match = opening;
-                break;
-            }
-        }
-
-        if (match == null) return Stream.empty();
-
-        Opening finalMatch = match;
-        BlockPos diff = toMatch.bounds().min().subtract(finalMatch.bounds().min()).offset(toMatch.direction());
-        MapTransform transform = MapTransform.translation(diff.getX(), diff.getY(), diff.getZ());
-
         return openings.stream()
-                .filter(opening -> !opening.equals(finalMatch))
-                .map(opening -> new AStar.ProtoNode(opening.transformed(transform), this.withTransform(transform)));
+                .filter(opening -> opening.bounds().size().equals(matchSize))
+                .filter(opening -> opening.direction().equals(matchOpposite))
+                .map(opening -> {
+                    BlockPos diff = toMatch.bounds().min().subtract(opening.bounds().min()).offset(toMatch.direction());
+                    // new transform for each opening - it'll shift differently if the opening is on the left than if it's on the right
+                    MapTransform transform = MapTransform.translation(diff.getX(), diff.getY(), diff.getZ());
+                    return new AStar.ProtoNode(opening.transformed(transform), this.withTransform(transform));
+                });
     }
 
     public record Opening(BlockBounds bounds, Direction direction, BlockPos center) {

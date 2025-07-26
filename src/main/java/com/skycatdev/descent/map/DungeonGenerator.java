@@ -69,7 +69,7 @@ public class DungeonGenerator {
             connections.add(new Pair<>(pieceLookup.get(edge.u()), pieceLookup.get(edge.v())));
         }
 
-        Collection<DungeonPiece> paths = AStar.generatePath(rooms, connections, pathPieces, random);
+        Collection<DungeonPiece> paths = NewAStar.generatePath(rooms, connections, pathPieces, random);
 
         List<MapTemplate> templates = new LinkedList<>();
         for (DungeonPiece room : rooms) {
