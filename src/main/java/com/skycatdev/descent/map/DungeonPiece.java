@@ -119,6 +119,17 @@ public class DungeonPiece {
         return false;
     }
 
+    public boolean isConnected(DungeonPiece other) {
+        for (Opening opening : openings) {
+            for (Opening otherOpening : openings) {
+                if (opening.isConnected(otherOpening)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public @Nullable Opening getConnected(Opening opening) {
         for (Opening myOpening : openings) {
             if (opening.isConnected(myOpening)) return myOpening;

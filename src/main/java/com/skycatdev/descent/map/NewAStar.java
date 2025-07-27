@@ -8,6 +8,8 @@ import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.map_templates.BlockBounds;
 
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class NewAStar {
@@ -20,7 +22,7 @@ public class NewAStar {
                 .map(DungeonPiece::bounds)
                 .toList();
         for (Pair<DungeonPiece, DungeonPiece> connection : toConnect) {
-            paths.addAll(generatePath(dungeonBounds, connection.getLeft(), connection.getRight(), pieces, random));
+            paths.addAll(generatePath(dungeonBounds, connection.getLeft(), connection.getRight(), pieces, paths, random));
         }
         return paths;
     }
@@ -29,6 +31,7 @@ public class NewAStar {
                                                          DungeonPiece start,
                                                          DungeonPiece end,
                                                          Collection<DungeonPiece> pieces,
+                                                         Collection<DungeonPiece> placedPaths,
                                                          Random random) throws NoSolutionException {
         Collection<Node> open = new HashSet<>();
         Collection<Node> closed = new HashSet<>();
@@ -49,14 +52,18 @@ public class NewAStar {
                     .orElseThrow(() -> new ConcurrentModificationException("open set was not empty, but there was nothing in it?"));
             open.remove(parent);
 
-            // Generate successors
-            var protos = pieces.parallelStream().flatMap(piece -> piece.matchedWith(entrance))
+            // Generate successors TODO parallelize
+            var protos = pieces.stream().flatMap(piece -> parent.piece().openings().stream()
+                            .filter(opening -> !opening.equals(parent.entrance()))
+                            .flatMap(piece::matchedWith))
                     // Don't intersect already-placed pieces
                     .filter(proto -> base.parallelStream().noneMatch(baseBound -> proto.piece().bounds().intersects(baseBound)))
                     // Don't intersect ancestors
-                    .filter(proto -> StreamSupport.stream(parent.iterateUp().spliterator(), false).map(Node::piece)
+                    .filter(proto -> parent.streamPath().map(Node::piece)
                             .map(DungeonPiece::bounds)
                             .noneMatch(ancestorBounds -> proto.piece().bounds().intersects(ancestorBounds)))
+                    // Iterate already placed
+                    .<AStar.ProtoNode>mapMulti((proto, adder) -> traversePlaced(placedPaths, proto, adder, proto.piece()))
                     .toList();
 
             for (var proto : protos) {
@@ -69,17 +76,15 @@ public class NewAStar {
             }
 
 
-
-
             protos.parallelStream()
                     // For each successor
                     .map(proto -> Node.fromProto(proto, parent, entrance, exit))
                     // If a node with the same pos in open is faster, skip
                     .filter(successor -> open.parallelStream()
-                            .noneMatch(openNode -> openNode.estPathLength() < successor.estPathLength()))
+                            .noneMatch(openNode -> openNode.estPathLength() < successor.estPathLength() && openNode.piece().equals(successor.piece())))
                     // If a node with the same pos in closed is faster, skip
                     .filter(successor -> closed.parallelStream()
-                            .noneMatch(closedNode -> closedNode.estPathLength() < successor.estPathLength()))
+                            .noneMatch(closedNode -> closedNode.estPathLength() < successor.estPathLength() && closedNode.piece().equals(successor.piece())))
                     .sequential()
                     // Add node to open
                     .forEach(open::add);
@@ -88,6 +93,33 @@ public class NewAStar {
         }
 
         throw new NoSolutionException("Ran out of options to check.");
+    }
+
+    private static void traversePlaced(Collection<DungeonPiece> placed, AStar.ProtoNode node, Consumer<AStar.ProtoNode> adder, DungeonPiece root) {
+        if (placed.isEmpty()) {
+            adder.accept(node);
+            return;
+        }
+        boolean surrounded = true;
+
+        for (DungeonPiece.Opening siblingOpening : node.piece().openings()) {
+            if (siblingOpening.equals(node.opening())) continue;
+
+            for (DungeonPiece piece : placed) {
+                @Nullable DungeonPiece.Opening connected = piece.getConnected(siblingOpening);
+                if (connected != null) { // If there's another piece to traverse
+                    List<DungeonPiece> toSearch = new LinkedList<>(placed);
+                    toSearch.remove(piece); // Don't loop back
+                    traversePlaced(toSearch, new AStar.ProtoNode(connected, piece), adder, root);
+                } else {
+                    surrounded = false;
+                }
+            }
+        }
+
+        if (!surrounded) {
+            adder.accept(node);
+        }
     }
 
     private record Node(
@@ -117,6 +149,10 @@ public class NewAStar {
                     pieceEntrance,
                     distFromStart,
                     pathEntrance.center().getManhattanDistance(pathExit.center()));
+        }
+
+        public Stream<Node> streamPath() {
+            return StreamSupport.stream(iterateUp().spliterator(), false);
         }
 
         public Iterable<Node> iterateUp() {
