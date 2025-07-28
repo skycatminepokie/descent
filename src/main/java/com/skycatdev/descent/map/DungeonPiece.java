@@ -15,6 +15,7 @@ import java.util.stream.Stream;
 
 public class DungeonPiece {
     public static final String OPENING_MARKER = "opening";
+    public static final String DUNGEON_MARKER = "dungeon";
     /**
      * Bounds, transformed using transform.
      */
@@ -28,7 +29,7 @@ public class DungeonPiece {
      * Don't mutate!
      */
     private final MapTemplate template;
-    private final StackedMapTransform transform;
+    private final StackedMapTransform transform; // TODO reinstate, ABOVE JAVADOC FOR template IS WRONG UNTIL THIS IS FIXED
     /**
      * The id of the template
      */
@@ -57,14 +58,19 @@ public class DungeonPiece {
         this.id = id;
     }
 
+    protected static BlockBounds getRealBounds(MapTemplate template) {
+        return Objects.requireNonNull(template.getMetadata().getFirstRegionBounds(DUNGEON_MARKER)); // TODO: no reqnonnull
+    }
+
     protected static List<Opening> findOpenings(MapTemplate template, Identifier id, @Nullable MapTransform transform) {
-        BlockBounds map = template.getBounds();
+        // TODO: avoid transforming, it's slow.
+        // TODO: THIS IS BEING MEAN WHY IS THE BOUNDS BIG
+        // TODO: OHMYGOSH IT'S THE CHUNK SIZE SO SUCCESS WAS HAPPENING ON FREAKING CHUNK BORDERS
+        // TODO: I'M GONNA YELL NOW AHHHHHHH
+        BlockBounds map = Objects.requireNonNull(template.getMetadata().getFirstRegionBounds(DUNGEON_MARKER)); // TODO: no reqnonnull
         Stream<BlockBounds> openingBounds = template.getMetadata().getRegionBounds(OPENING_MARKER);
-        if (transform != null) {
-            openingBounds = openingBounds.map(transform::transformedBounds);
-            map = transform.transformedBounds(map);
-        }
-        BlockBounds finalMap = map; // TODO: Move this into a conditional initialization
+
+        // TODO: Move this into a conditional initialization
         return openingBounds.<Opening>mapMulti((bounds, adder) -> {
                     BlockPos size = bounds.size();
                     // The size component that is 0 will be one block thick. The corresponding opening component (min or max):
@@ -72,31 +78,31 @@ public class DungeonPiece {
                     // otherwise, it MUST match the max component of the map (the direction is positive)
                     boolean added = false;
                     if (size.getX() == 0) {
-                        if (bounds.min().getX() == finalMap.min().getX()) {
+                        if (bounds.min().getX() == map.min().getX()) {
                             added = true;
                             adder.accept(new Opening(bounds, Direction.from(Direction.Axis.X, Direction.AxisDirection.NEGATIVE)));
                         }
-                        if (bounds.min().getX() == finalMap.max().getX()) {
+                        if (bounds.min().getX() == map.max().getX()) {
                             added = true;
                             adder.accept(new Opening(bounds, Direction.from(Direction.Axis.X, Direction.AxisDirection.POSITIVE)));
                         }
                     }
                     if (size.getY() == 0) {
-                        if (bounds.min().getY() == finalMap.min().getY()) {
+                        if (bounds.min().getY() == map.min().getY()) {
                             added = true;
                             adder.accept(new Opening(bounds, Direction.from(Direction.Axis.Y, Direction.AxisDirection.NEGATIVE)));
                         }
-                        if (bounds.min().getY() == finalMap.max().getY()) {
+                        if (bounds.min().getY() == map.max().getY()) {
                             added = true;
                             adder.accept(new Opening(bounds, Direction.from(Direction.Axis.Y, Direction.AxisDirection.POSITIVE)));
                         }
                     }
                     if (size.getZ() == 0) {
-                        if (bounds.min().getZ() == finalMap.min().getZ()) {
+                        if (bounds.min().getZ() == map.min().getZ()) {
                             added = true;
                             adder.accept(new Opening(bounds, Direction.from(Direction.Axis.Z, Direction.AxisDirection.NEGATIVE)));
                         }
-                        if (bounds.min().getZ() == finalMap.max().getZ()) {
+                        if (bounds.min().getZ() == map.max().getZ()) {
                             added = true;
                             adder.accept(new Opening(bounds, Direction.from(Direction.Axis.Z, Direction.AxisDirection.POSITIVE)));
                         }
@@ -109,7 +115,7 @@ public class DungeonPiece {
     }
 
     public BlockBounds bounds() {
-        return bounds;
+        return getRealBounds(template); // TODO Slow, for debug, cache this
     }
 
     public boolean isConnected(Opening opening) {
@@ -140,7 +146,7 @@ public class DungeonPiece {
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof DungeonPiece that)) return false;
-        return Objects.equals(bounds, that.bounds) && Objects.equals(openings, that.openings) && Objects.equals(template, that.template) && Objects.equals(transform, that.transform);
+        return Objects.equals(bounds, that.bounds) && Objects.equals(openings, that.openings) && Objects.equals(template, that.template);
     }
 
     public boolean hasOpening(BlockPos size) {
@@ -149,7 +155,7 @@ public class DungeonPiece {
 
     @Override
     public int hashCode() {
-        return Objects.hash(bounds, openings, template, transform);
+        return Objects.hash(bounds, openings, template);
     }
 
     public List<Opening> openings() {
@@ -162,19 +168,16 @@ public class DungeonPiece {
                "bounds=" + bounds +
                ", openings=" + openings +
                ", template=" + template +
-               ", transform=" + transform +
                '}';
     }
 
     public DungeonPiece withTransform(MapTransform transform) {
-        BlockBounds bounds = transform.transformedBounds(this.bounds);
-
-        List<Opening> openings = findOpenings(template, id, transform);
-        return new DungeonPiece(bounds, openings, template, this.transform.copyWith(transform), id);
+        // TODO: OPENING'S BOUNDS ARE NOT BEING TRANSLATED PROPERLY
+        return new DungeonPiece(template.transformed(transform), id);
     }
 
     public MapTemplate toTemplate() {
-        return template.transformed(transform);
+        return template;
     }
 
     /**

@@ -39,7 +39,6 @@ public class DungeonGenerator {
 
         steerRooms(config, random, rooms);
 
-        List<DungeonPiece.Opening> openings = new LinkedList<>();
         // Possibly better than a lookup, but this will do
         Map<Vec3d, DungeonPiece> pieceLookup = new HashMap<>();
         List<Vec3d> centers = new LinkedList<>();
@@ -48,7 +47,6 @@ public class DungeonGenerator {
             Vec3d center = room.bounds().center();
             centers.add(center);
             pieceLookup.put(center, room);
-            openings.addAll(room.openings());
         }
 
 

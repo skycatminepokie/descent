@@ -31,6 +31,7 @@ public class Descent implements ModInitializer {
 				int y = 2;
 				int z = 2;
 				room.setBounds(BlockBounds.of(0, 0, 0, x, y, z));
+				room.getMetadata().addRegion(DungeonPiece.DUNGEON_MARKER, BlockBounds.of(0, 0, 0, x, y, z));
 				for (BlockPos blockPos : BlockPos.iterate(BlockPos.ORIGIN, new BlockPos(x, y, z))) {
 					room.setBlockState(blockPos, Blocks.RED_WOOL.getDefaultState());
 				}
@@ -55,6 +56,7 @@ public class Descent implements ModInitializer {
 				int y = 4;
 				int z = 4;
 				room.setBounds(BlockBounds.of(0, 0, 0, x, y, z));
+				room.getMetadata().addRegion(DungeonPiece.DUNGEON_MARKER, BlockBounds.of(0, 0, 0, x, y, z));
 				for (BlockPos blockPos : BlockPos.iterate(BlockPos.ORIGIN, new BlockPos(x, y, z))) {
 					room.setBlockState(blockPos, Blocks.RED_WOOL.getDefaultState());
 				}
@@ -87,7 +89,7 @@ public class Descent implements ModInitializer {
 				hallway.setBlockState(BlockPos.ORIGIN, Blocks.BLUE_WOOL.getDefaultState());
 
 				hallway.getMetadata().addRegion(DungeonPiece.OPENING_MARKER, BlockBounds.ofBlock(BlockPos.ORIGIN));
-
+				hallway.getMetadata().addRegion(DungeonPiece.DUNGEON_MARKER, BlockBounds.ofBlock(BlockPos.ORIGIN));
 				try {
 					MapTemplateSerializer.saveTo(hallway,
 							new FileOutputStream(server.getRunDirectory().resolve("test_hall_1_1_1.nbt").toFile()),

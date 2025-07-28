@@ -89,6 +89,7 @@ public class NewAStar {
                     // Add node to open
                     .forEach(open::add);
             // Parent goes on closed
+            // TODO: We're double adding somewhere
             closed.add(parent);
         }
 
@@ -96,6 +97,7 @@ public class NewAStar {
     }
 
     private static void traversePlaced(Collection<DungeonPiece> placed, AStar.ProtoNode node, Consumer<AStar.ProtoNode> adder, DungeonPiece root) {
+        // TODO: Fix bad heuristics
         if (placed.isEmpty()) {
             adder.accept(node);
             return;
