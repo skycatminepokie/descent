@@ -32,18 +32,6 @@ public record Edge(Vec3d u, Vec3d v, double length) {
         return false;
     }
 
-    public boolean isEquivalent(Edge other) {
-        return this.equals(other) ||
-               (other.u().equals(v()) &&
-                other.v().equals(u()) &&
-                other.length() == length());
-    }
-
-    public boolean hasBoth(Vec3d u, Vec3d v) {
-        return (u.equals(u()) && v.equals(v())) ||
-               (v.equals(u()) && u.equals(v()));
-    }
-
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof Edge(Vec3d u1, Vec3d v1, double ignored))) return false;

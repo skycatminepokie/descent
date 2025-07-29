@@ -34,7 +34,7 @@ public class Delaunay3DTest {
         Vec3d b = new Vec3d(3, 4, 5);
         Set<Edge> result = Delaunay3D.triangulate(List.of(a, b));
         Assertions.assertEquals(1, result.size());
-        Assertions.assertTrue(result.stream().anyMatch(edge -> edge.hasBoth(a, b)));
+        Assertions.assertTrue(result.contains(new Edge(a, b)));
     }
 
     @Test
@@ -44,9 +44,9 @@ public class Delaunay3DTest {
         Vec3d c = new Vec3d(0, -2, 0);
         Set<Edge> result = Delaunay3D.triangulate(List.of(a, b, c));
         Assertions.assertEquals(3, result.size());
-        Assertions.assertTrue(result.stream().anyMatch(edge -> edge.hasBoth(a, b)));
-        Assertions.assertTrue(result.stream().anyMatch(edge -> edge.hasBoth(b, c)));
-        Assertions.assertTrue(result.stream().anyMatch(edge -> edge.hasBoth(c, a)));
+        Assertions.assertTrue(result.contains(new Edge(a, b)));
+        Assertions.assertTrue(result.contains(new Edge(b, c)));
+        Assertions.assertTrue(result.contains(new Edge(c, a)));
     }
 
     @Test
