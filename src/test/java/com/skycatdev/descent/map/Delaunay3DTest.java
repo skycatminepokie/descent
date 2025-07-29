@@ -4,10 +4,20 @@ import net.minecraft.util.math.Vec3d;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class Delaunay3DTest {
+    private static final Comparator<Vec3d> VEC3D_SORTER = Comparator.comparingDouble(Vec3d::getX)
+            .thenComparingDouble(Vec3d::getY)
+            .thenComparingDouble(Vec3d::getZ);
+    private static final Comparator<Edge> EDGE_SORTER = Comparator.comparing(Edge::u, VEC3D_SORTER)
+            .thenComparing(Edge::v, VEC3D_SORTER)
+            .thenComparingDouble(Edge::length);
+
+
     @Test
     void testTriangulate0() {
         Assertions.assertTrue(Delaunay3D.triangulate(List.of()).isEmpty());
@@ -45,11 +55,17 @@ public class Delaunay3DTest {
         Vec3d b = new Vec3d(0, 0, 2);
         Vec3d c = new Vec3d(0, 1, 0);
         Vec3d d = new Vec3d(2, 0, 0);
-        Assertions.assertEquals(Set.of(new Edge(a, b),
+        Set<Edge> expected = Set.of(new Edge(a, b),
                 new Edge(a, c),
                 new Edge(a, d),
                 new Edge(b, c),
                 new Edge(b, d),
-                new Edge(c, d)), Delaunay3D.triangulate(List.of(a, b, c, d)));
+                new Edge(c, d));
+        Set<Edge> actual = Delaunay3D.triangulate(List.of(a, b, c, d));
+        Assertions.assertEquals(expected, actual, () -> "Failed. Expected: \n" + expected.stream().sorted(EDGE_SORTER).map(Edge::toString).collect(Collectors.joining("\n")) +
+                                                    "\nGot:\n" +
+                                                    actual.stream().sorted(EDGE_SORTER).map(Edge::toString).collect(Collectors.joining("\n")) +
+                                                    '\n');
     }
+
 }
