@@ -2,6 +2,8 @@ package com.skycatdev.descent.map;
 
 import net.minecraft.util.math.Vec3d;
 
+import java.util.Objects;
+
 public record Edge(Vec3d u, Vec3d v, double length) {
 
     public Edge(Vec3d u, Vec3d v) {
@@ -40,5 +42,17 @@ public record Edge(Vec3d u, Vec3d v, double length) {
     public boolean hasBoth(Vec3d u, Vec3d v) {
         return (u.equals(u()) && v.equals(v())) ||
                (v.equals(u()) && u.equals(v()));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Edge(Vec3d u1, Vec3d v1, double ignored))) return false;
+        return (Objects.equals(u, u1) && Objects.equals(v, v1)) ||
+               (Objects.equals(v, u1) && Objects.equals(u, v1));
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(u) ^ Objects.hash(v);
     }
 }

@@ -68,4 +68,33 @@ public class Delaunay3DTest {
                                                     '\n');
     }
 
+    @Test
+    void testTriangulate5() {
+        Vec3d a = new Vec3d(0, 0, 0);
+        Vec3d b = new Vec3d(0, 0, 2);
+        Vec3d c = new Vec3d(0, 1, 0);
+        Vec3d d = new Vec3d(2, 0, 0);
+        Vec3d e = new Vec3d(1, 1, 1); // Point inside the bounding tetrahedron
+
+        Set<Edge> expected = Set.of(
+                // Original tetrahedron
+                new Edge(a, b), new Edge(a, c), new Edge(a, d),
+                new Edge(b, c), new Edge(b, d), new Edge(c, d),
+
+                // New edges introduced by point e
+                new Edge(a, e), new Edge(b, e), new Edge(c, e), new Edge(d, e)
+        );
+
+        List<Vec3d> input = List.of(a, b, c, d, e);
+        Set<Edge> actual = Delaunay3D.triangulate(input);
+
+        Assertions.assertEquals(expected, actual, () ->
+                "Failed. Expected:\n" +
+                expected.stream().sorted(EDGE_SORTER).map(Edge::toString).collect(Collectors.joining("\n")) +
+                "\nGot:\n" +
+                actual.stream().sorted(EDGE_SORTER).map(Edge::toString).collect(Collectors.joining("\n")) +
+                '\n'
+        );
+    }
+
 }

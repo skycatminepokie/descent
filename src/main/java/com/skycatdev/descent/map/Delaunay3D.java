@@ -60,10 +60,10 @@ public class Delaunay3D {
         double dz = maxZ - minZ;
         double deltaMax = Math.max(dx, Math.max(dy, dz)) * 2; // Biggest side of bounds
 
-        Vec3d p1 = new Vec3d(minX - 1, minY - 1, minZ - 1);
-        Vec3d p2 = new Vec3d(maxX + deltaMax, minY - 1, minZ - 1);
-        Vec3d p3 = new Vec3d(minX - 1, maxY + deltaMax, minZ -1);
-        Vec3d p4 = new Vec3d(minX - 1, minY - 1, maxZ + deltaMax);
+        Vec3d p1 = new Vec3d(minX - deltaMax, minY - deltaMax, minZ - deltaMax);
+        Vec3d p2 = new Vec3d(maxX + deltaMax, minY - deltaMax, minZ - deltaMax);
+        Vec3d p3 = new Vec3d(minX - deltaMax, maxY + deltaMax, minZ - deltaMax);
+        Vec3d p4 = new Vec3d(minX - deltaMax, minY - deltaMax, maxZ + deltaMax);
 
         List<Tetrahedron> tetrahedra = new LinkedList<>();
         // Make one big tetrahedron that encompasses it all
