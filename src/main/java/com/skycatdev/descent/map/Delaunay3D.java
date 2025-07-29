@@ -25,6 +25,20 @@ public class Delaunay3D {
          our graph. Finally, return all the unique edges.
         */
 
+        if (vertices.isEmpty()) {
+            return Set.of();
+        }
+
+        if (vertices.size() == 2) {
+            return Set.of(new Edge(vertices.getFirst(), vertices.getLast()));
+        }
+
+        if (vertices.size() == 3) {
+            return Set.of(new Edge(vertices.getFirst(), vertices.get(1)),
+                    new Edge(vertices.get(1), vertices.getLast()),
+                    new Edge(vertices.getLast(), vertices.getFirst()));
+        }
+
         // Find bounds
 
         double maxX, maxY, maxZ;
@@ -44,7 +58,7 @@ public class Delaunay3D {
         double dx = maxX - minX;
         double dy = maxY - minY;
         double dz = maxZ - minZ;
-        double deltaMax = Math.max(dx, Math.max(dy, dz)); // Biggest side of bounds
+        double deltaMax = Math.max(dx, Math.max(dy, dz)) * 2; // Biggest side of bounds
 
         Vec3d p1 = new Vec3d(minX - 1, minY - 1, minZ - 1);
         Vec3d p2 = new Vec3d(maxX + deltaMax, minY - 1, minZ - 1);
