@@ -42,7 +42,7 @@ public class NewAStar {
 
         // Decide on locations to match
         DungeonPiece.Opening entrance = Utils.randomFromList(start.openings(), random);
-        DungeonPiece.Opening exit = Utils.randomFromList(start.openings(), random);
+        DungeonPiece.Opening exit = Utils.randomFromList(end.openings(), random);
 
         open.add(new Node(null, start, entrance, 0, exit.center().getManhattanDistance(entrance.center())));
 
@@ -74,7 +74,6 @@ public class NewAStar {
                     return path;
                 }
             }
-
 
             protos.parallelStream()
                     // For each successor
