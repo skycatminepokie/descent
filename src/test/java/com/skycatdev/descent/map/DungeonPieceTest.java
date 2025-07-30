@@ -63,22 +63,20 @@ public class DungeonPieceTest {
 
     @Test
     void translation1_1_1() {
+        BlockBounds expectedBounds = BlockBounds.ofBlock(new BlockPos(1, 1, 1));
+        List<DungeonPiece.Opening> expectedOpenings = List.of(new DungeonPiece.Opening(expectedBounds, Direction.UP),
+                new DungeonPiece.Opening(expectedBounds, Direction.DOWN),
+                new DungeonPiece.Opening(expectedBounds, Direction.NORTH),
+                new DungeonPiece.Opening(expectedBounds, Direction.EAST),
+                new DungeonPiece.Opening(expectedBounds, Direction.SOUTH),
+                new DungeonPiece.Opening(expectedBounds, Direction.WEST));
+
         DungeonPiece translated = HALL_1_1_1.withTransform(MapTransform.translation(1, 1, 1));
 
         assertThat(translated)
-                .isNotSameAs(HALL_1_1_1); // Not same reference - withTransform should return new
-
-        BlockBounds bounds = BlockBounds.ofBlock(new BlockPos(1, 1, 1));
-        assertThat(translated.dungeonBounds())
-                .isEqualTo(bounds);
-
-        List<DungeonPiece.Opening> expectedOpenings = List.of(new DungeonPiece.Opening(bounds, Direction.UP),
-                new DungeonPiece.Opening(bounds, Direction.DOWN),
-                new DungeonPiece.Opening(bounds, Direction.NORTH),
-                new DungeonPiece.Opening(bounds, Direction.EAST),
-                new DungeonPiece.Opening(bounds, Direction.SOUTH),
-                new DungeonPiece.Opening(bounds, Direction.WEST));
-
+                .isNotSameAs(HALL_1_1_1)
+                .extracting(DungeonPiece::dungeonBounds) // Not same reference - withTransform should return new
+                    .isEqualTo(expectedBounds);
         assertThat(translated.openings())
                 .containsExactlyInAnyOrderElementsOf(expectedOpenings);
     }
