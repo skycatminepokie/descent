@@ -82,9 +82,9 @@ public class AStar {
             var nodesByOpening = pieces.stream() // TODO: Parallelize?
                     .flatMap(piece -> piece.matchedWith(parent.opening())) // Find candidate nodes
                     .filter(candidate -> dungeon.stream() // Remove nodes with pieces that intersect the dungeon
-                            .noneMatch(bounds -> bounds.intersects(candidate.piece().bounds()))) // TODO: Verify that this blocks all intersections
+                            .noneMatch(bounds -> bounds.intersects(candidate.piece().dungeonBounds()))) // TODO: Verify that this blocks all intersections
                     // Remove nodes with pieces that intersect their ancestors
-                    .filter(candidate -> !parent.overlaps(candidate.piece().bounds()) && !parent.overlapsAncestors(candidate.piece().bounds()))
+                    .filter(candidate -> !parent.overlaps(candidate.piece().dungeonBounds()) && !parent.overlapsAncestors(candidate.piece().dungeonBounds()))
                     // We've got a piece and opening, now we need a ProtoNode for all its siblings (the next generation)
                     .<ProtoNode>mapMulti((valid, adder) -> {
                         for (DungeonPiece.Opening opening : valid.piece().openings()) {
@@ -131,7 +131,7 @@ public class AStar {
                                                         Random random) throws NoSolutionException {
         Collection<DungeonPiece> paths = new LinkedList<>();
         Collection<BlockBounds> dungeonBounds = base.stream()
-                .map(DungeonPiece::bounds)
+                .map(DungeonPiece::dungeonBounds)
                 .toList();
         for (Pair<DungeonPiece, DungeonPiece> connection : toConnect) {
             for (Node node : findPath(paths, dungeonBounds, connection.getLeft(), connection.getRight(), pieces, random)) {
@@ -238,7 +238,7 @@ public class AStar {
 
         public boolean overlaps(BlockBounds bounds) {
             if (piece != null) {
-                return piece.bounds().intersects(bounds);
+                return piece.dungeonBounds().intersects(bounds);
             }
             return false;
         }

@@ -19,7 +19,7 @@ public class NewAStar {
                                                         Random random) throws NoSolutionException {
         Collection<DungeonPiece> paths = new HashSet<>();
         Collection<BlockBounds> dungeonBounds = base.stream()
-                .map(DungeonPiece::bounds)
+                .map(DungeonPiece::dungeonBounds)
                 .toList();
         for (Pair<DungeonPiece, DungeonPiece> connection : toConnect) {
             paths.addAll(generatePath(dungeonBounds, connection.getLeft(), connection.getRight(), pieces, paths, random));
@@ -57,11 +57,11 @@ public class NewAStar {
                             .filter(opening -> !opening.equals(parent.entrance()))
                             .flatMap(piece::matchedWith))
                     // Don't intersect already-placed pieces
-                    .filter(proto -> base.parallelStream().noneMatch(baseBound -> proto.piece().bounds().intersects(baseBound)))
+                    .filter(proto -> base.parallelStream().noneMatch(baseBound -> proto.piece().dungeonBounds().intersects(baseBound)))
                     // Don't intersect ancestors
                     .filter(proto -> parent.streamPath().map(Node::piece)
-                            .map(DungeonPiece::bounds)
-                            .noneMatch(ancestorBounds -> proto.piece().bounds().intersects(ancestorBounds)))
+                            .map(DungeonPiece::dungeonBounds)
+                            .noneMatch(ancestorBounds -> proto.piece().dungeonBounds().intersects(ancestorBounds)))
                     // Iterate already placed
                     .<AStar.ProtoNode>mapMulti((proto, adder) -> traversePlaced(placedPaths, proto, adder, proto.piece()))
                     .toList();

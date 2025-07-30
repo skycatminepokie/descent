@@ -28,7 +28,7 @@ public class DungeonGenerator {
 
         for (int i = 0; i < config.numberOfRooms() - 2; i++) { // -2 to account for start and end
             DungeonPiece room = loadPiece(config.rooms().get(random), server);
-            Vec3i center = BlockPos.ofFloored(room.bounds().center());
+            Vec3i center = BlockPos.ofFloored(room.dungeonBounds().center());
             room.withTransform(MapTransform.translation(-center.getX(), -center.getY(), -center.getZ())); // Center the room
             rooms.add(room);
         }
@@ -44,7 +44,7 @@ public class DungeonGenerator {
         List<Vec3d> centers = new LinkedList<>();
 
         for (DungeonPiece room : rooms) {
-            Vec3d center = room.bounds().center();
+            Vec3d center = room.dungeonBounds().center();
             centers.add(center);
             pieceLookup.put(center, room);
         }
@@ -107,16 +107,16 @@ public class DungeonGenerator {
 
                 for (int j = 0; j < rooms.size(); j++) {
                     if (i == j) continue;
-                    BlockBounds otherBounds = rooms.get(j).bounds();
+                    BlockBounds otherBounds = rooms.get(j).dungeonBounds();
                     BlockBounds avoid = BlockBounds.of(
                             otherBounds.min().subtract(new Vec3i(config.minSeparationX(), config.minSeparationY(), config.minSeparationZ())),
                             otherBounds.max().add(new Vec3i(config.minSeparationX(), config.minSeparationY(), config.minSeparationZ()))
                     );
-                    @Nullable BlockBounds intersect = main.bounds().intersection(avoid);
+                    @Nullable BlockBounds intersect = main.dungeonBounds().intersection(avoid);
                     if (intersect != null) {
                         move = true;
                         BlockPos magnitude = intersect.size();
-                        Vec3d centerDiff = main.bounds().center().subtract(avoid.center());
+                        Vec3d centerDiff = main.dungeonBounds().center().subtract(avoid.center());
                         totalOverlap.move(Utils.copySign(magnitude, centerDiff));
                     }
                 }
@@ -138,7 +138,7 @@ public class DungeonGenerator {
                     } else {
                         // We're overlapping things, but the forces are cancelling out. Add some randomness to keep moving.
                         // TODO: Constants may need tweaking
-                        BlockPos.Mutable boundsSize = main.bounds().size().mutableCopy();
+                        BlockPos.Mutable boundsSize = main.dungeonBounds().size().mutableCopy();
                         int steerX = Math.max(boundsSize.getX() / 4, 1);
                         int steerY = Math.max(boundsSize.getY() / 4, 1);
                         int steerZ = Math.max(boundsSize.getZ() / 4, 1);
