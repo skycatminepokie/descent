@@ -4,6 +4,7 @@ import com.skycatdev.descent.Descent;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
@@ -45,7 +46,7 @@ public class DungeonPiece {
      * @param transform The transform to apply to the template before placing
      */
     public DungeonPiece(MapTemplate template, Identifier id, StackedMapTransform transform) {
-        this(dungeonBounds(template), findOpenings(template, id, transform), template, transform, id);
+        this(transform.transformedBounds(dungeonBounds(template)), findOpenings(template, id, transform), template, transform, id);
     }
 
     /**
@@ -177,6 +178,7 @@ public class DungeonPiece {
         return openings;
     }
 
+    @Contract("_->new")
     public DungeonPiece withTransform(MapTransform transform) {
         return new DungeonPiece(template, id, this.transform.copyWith(transform));
     }

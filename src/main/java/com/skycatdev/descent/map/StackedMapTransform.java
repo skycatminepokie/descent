@@ -28,12 +28,11 @@ public class StackedMapTransform implements MapTransform {
 
     @Override
     public BlockPos.Mutable transformPoint(BlockPos.Mutable mutablePos) {
-        BlockPos ret = mutablePos;
         for (MapTransform transform : transforms) {
-            ret = transform.transformedPoint(ret);
+            transform.transformPoint(mutablePos);
         }
 
-        return ret.mutableCopy();
+        return mutablePos;
     }
 
     @Override

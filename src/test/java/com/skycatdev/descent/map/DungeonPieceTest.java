@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
+import xyz.nucleoid.map_templates.MapTransform;
 
 import java.util.List;
 
@@ -48,17 +49,38 @@ public class DungeonPieceTest {
     }
 
     @Test
-    void openings1_1_1() {
+    void base1_1_1() {
         List<DungeonPiece.Opening> expected = List.of(new DungeonPiece.Opening(BlockBounds.ofBlock(BlockPos.ORIGIN), Direction.UP),
                 new DungeonPiece.Opening(BlockBounds.ofBlock(BlockPos.ORIGIN), Direction.DOWN),
                 new DungeonPiece.Opening(BlockBounds.ofBlock(BlockPos.ORIGIN), Direction.NORTH),
                 new DungeonPiece.Opening(BlockBounds.ofBlock(BlockPos.ORIGIN), Direction.EAST),
                 new DungeonPiece.Opening(BlockBounds.ofBlock(BlockPos.ORIGIN), Direction.SOUTH),
                 new DungeonPiece.Opening(BlockBounds.ofBlock(BlockPos.ORIGIN), Direction.WEST));
-        List<DungeonPiece.Opening> actual = HALL_1_1_1.openings();
 
-        assertThat(actual).containsExactlyInAnyOrderElementsOf(expected);
+        assertThat(HALL_1_1_1.openings()).containsExactlyInAnyOrderElementsOf(expected);
+        assertThat(HALL_1_1_1.dungeonBounds()).isEqualTo(BlockBounds.ofBlock(BlockPos.ORIGIN));
+    }
 
+    @Test
+    void translation1_1_1() {
+        DungeonPiece translated = HALL_1_1_1.withTransform(MapTransform.translation(1, 1, 1));
+
+        assertThat(translated)
+                .isNotSameAs(HALL_1_1_1); // Not same reference - withTransform should return new
+
+        BlockBounds bounds = BlockBounds.ofBlock(new BlockPos(1, 1, 1));
+        assertThat(translated.dungeonBounds())
+                .isEqualTo(bounds);
+
+        List<DungeonPiece.Opening> expectedOpenings = List.of(new DungeonPiece.Opening(bounds, Direction.UP),
+                new DungeonPiece.Opening(bounds, Direction.DOWN),
+                new DungeonPiece.Opening(bounds, Direction.NORTH),
+                new DungeonPiece.Opening(bounds, Direction.EAST),
+                new DungeonPiece.Opening(bounds, Direction.SOUTH),
+                new DungeonPiece.Opening(bounds, Direction.WEST));
+
+        assertThat(translated.openings())
+                .containsExactlyInAnyOrderElementsOf(expectedOpenings);
     }
 
 }
