@@ -10,6 +10,7 @@ import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
 import xyz.nucleoid.map_templates.MapTransform;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -188,6 +189,15 @@ public class DungeonPiece {
         return openings;
     }
 
+    public boolean equivalentTo(DungeonPiece other) {
+        var otherOpenings = new HashSet<>(other.openings);
+        var myOpenings = new HashSet<>(openings);
+        return otherOpenings.containsAll(myOpenings) &&
+               myOpenings.containsAll(otherOpenings) &&
+               id.equals(other.id) &&
+               dungeonBounds.equals(other.dungeonBounds);
+    }
+
     @Contract("_->new")
     public DungeonPiece withTransform(MapTransform transform) {
         return new DungeonPiece(template, id, this.transform.copyWith(transform));
@@ -210,7 +220,7 @@ public class DungeonPiece {
         return openings.stream()
                 .filter(opening -> opening.bounds().size().equals(matchSize))
                 .filter(opening -> opening.direction().equals(matchOpposite)) // Matching openings
-                .<AStar.ProtoNode>flatMap(matchedOpening -> {
+                .map(matchedOpening -> {
                     BlockPos diff = toMatch.bounds().min().subtract(matchedOpening.bounds().min()).offset(toMatch.direction());
                     // new transform for each opening - it'll shift differently if the opening is on the left than if it's on the right
                     MapTransform transform = MapTransform.translation(diff.getX(), diff.getY(), diff.getZ());
@@ -220,8 +230,7 @@ public class DungeonPiece {
                             .toList();
                     DungeonPiece newPiece = new DungeonPiece(transform.transformedBounds(dungeonBounds), newOpenings, template, this.transform.copyWith(transform), id);
                     Opening transformedMatchedOpening = matchedOpening.transformed(transform);
-                    return newOpenings.stream().filter(o -> !o.equals(transformedMatchedOpening))
-                            .map(o -> new AStar.ProtoNode(o, newPiece));
+                    return new AStar.ProtoNode(transformedMatchedOpening, newPiece);
                 });
     }
 

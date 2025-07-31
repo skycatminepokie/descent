@@ -113,4 +113,64 @@ public class NewAStarTest {
                     .containsExactlyInAnyOrderElementsOf(expected);
         }
     }
+
+    @Test
+    @Timeout(30)
+    @Execution(ExecutionMode.CONCURRENT)
+    void testTwoAxisTwoDirection() throws NoSolutionException {
+        @UnknownNullability DungeonPiece start = ROOM_3_3_3;
+        DungeonPiece end = ROOM_3_3_3.withTransform(MapTransform.translation(0, 3, 2));
+        List<DungeonPiece> base = List.of(start, end);
+        List<Pair<DungeonPiece, DungeonPiece>> toConnect = List.of(new Pair<>(start, end));
+        List<DungeonPiece> pieces = List.of(HALL_1_1_1);
+        Random random = Random.create(0);
+        DungeonPiece.Opening entrance = start.openings().stream().filter(o -> o.direction().equals(Direction.UP))
+                .findFirst()
+                .orElseThrow();
+        DungeonPiece.Opening exit = end.openings().stream().filter(o -> o.direction().equals(Direction.NORTH))
+                .findFirst()
+                .orElseThrow();
+        Collection<DungeonPiece> expected = List.of(HALL_1_1_1.withTransform(MapTransform.translation(1, 3, 1)),
+                HALL_1_1_1.withTransform(MapTransform.translation(1, 4, 1)));
+
+
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
+            mockedUtils.when(() -> Utils.randomFromList(anyList(), any()))
+                    .thenReturn(entrance, exit);
+            Collection<DungeonPiece> actual = NewAStar.generatePath(base, toConnect, pieces, random);
+            assertThat(actual)
+                    .containsExactlyInAnyOrderElementsOf(expected);
+        }
+    }
+
+    @Test
+    @Timeout(30)
+    @Execution(ExecutionMode.CONCURRENT)
+    void testFourAway() throws NoSolutionException {
+        @UnknownNullability DungeonPiece start = ROOM_3_3_3;
+        DungeonPiece end = ROOM_3_3_3.withTransform(MapTransform.translation(0, 0, 7));
+        List<DungeonPiece> base = List.of(start, end);
+        List<Pair<DungeonPiece, DungeonPiece>> toConnect = List.of(new Pair<>(start, end));
+        List<DungeonPiece> pieces = List.of(HALL_1_1_1);
+        Random random = Random.create(0);
+        DungeonPiece.Opening entrance = start.openings().stream().filter(o -> o.direction().equals(Direction.SOUTH))
+                .findFirst()
+                .orElseThrow();
+        DungeonPiece.Opening exit = end.openings().stream().filter(o -> o.direction().equals(Direction.NORTH))
+                .findFirst()
+                .orElseThrow();
+        Collection<DungeonPiece> expected = List.of(HALL_1_1_1.withTransform(MapTransform.translation(1, 1, 3)),
+                HALL_1_1_1.withTransform(MapTransform.translation(1, 1, 4)),
+                HALL_1_1_1.withTransform(MapTransform.translation(1, 1, 5)),
+                HALL_1_1_1.withTransform(MapTransform.translation(1, 1, 6)));
+
+
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
+            mockedUtils.when(() -> Utils.randomFromList(anyList(), any()))
+                    .thenReturn(entrance, exit);
+            Collection<DungeonPiece> actual = NewAStar.generatePath(base, toConnect, pieces, random);
+            assertThat(actual)
+                    .containsExactlyInAnyOrderElementsOf(expected);
+        }
+    }
 }

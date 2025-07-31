@@ -76,33 +76,54 @@ public class NewAStar {
                     .toList();
 
             for (var proto : protos) {
-                if (proto.opening().isConnected(exit)) { // Found a working path!
+                if (proto.piece().isConnected(exit)) { // Found a working path!
                     List<DungeonPiece> path = new LinkedList<>();
                     path.add(proto.piece());
                     parent.iterateUp().iterator().forEachRemaining(node -> path.add(node.piece()));
                     path.remove(start); // Could've avoided this by making it null for the root node, but that was gonna be annoying
                     return path;
                 }
-            }
+                boolean skip = false;
+                for (Node closedNode : closed) {
+                    if (proto.piece().equivalentTo(closedNode.piece())) {
+                        skip = true;
+                        break;
+                    }
+                }
+                if (skip) continue;
 
-            protos.parallelStream()
-                    // For each successor
-                    .map(proto -> Node.fromProto(proto, parent, entrance, exit))
-                    // If a node with the same pos in open is faster, skip
-                    .filter(successor -> open.parallelStream()
-                            .noneMatch(openNode -> openNode.estPathLength() < successor.estPathLength() && openNode.piece().equals(successor.piece())))
-                    // If a node with the same pos in closed is faster, skip
-                    .filter(successor -> closed.parallelStream()
-                            .noneMatch(closedNode -> closedNode.estPathLength() < successor.estPathLength() && closedNode.piece().equals(successor.piece())))
-                    .sequential()
-                    // Add node to open
-                    .forEach(open::add);
+                Node successor = Node.fromProto(proto, parent, entrance, exit);
+                replaceSlower(open, successor);
+            }
+            // TODO: We're finding 100 different ways to get to the same place. not ideal.
             // Parent goes on closed
             // TODO: We're double adding somewhere
             closed.add(parent);
         }
 
         throw new NoSolutionException("Ran out of options to check.");
+    }
+
+    private static void replaceSlower(Collection<Node> replaceFrom, Node successor) {
+        HashSet<Node> toRemove = new HashSet<>();
+        boolean shouldAdd = true;
+
+        for (Node node : replaceFrom) {
+            if (successor.piece().equivalentTo(node.piece())) {
+                if (successor.estPathLength() < node.estPathLength()) { // Current is faster
+                    toRemove.add(node);
+                } else { // At least one is faster
+                    shouldAdd = false;
+                    break;
+                }
+            }
+        }
+
+        replaceFrom.removeAll(toRemove);
+
+        if (shouldAdd) {
+            replaceFrom.add(successor);
+        }
     }
 
     private static void traversePlaced(Collection<DungeonPiece> placed, AStar.ProtoNode node, Consumer<AStar.ProtoNode> adder, DungeonPiece root) {
