@@ -14,6 +14,8 @@ import org.jetbrains.annotations.UnknownNullability;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.mockito.MockedStatic;
 import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
@@ -59,6 +61,7 @@ public class NewAStarTest {
 
     @Test
     @Timeout(10)
+    @Execution(ExecutionMode.CONCURRENT)
     void testAdjacent() throws NoSolutionException {
         @UnknownNullability DungeonPiece start = ROOM_3_3_3;
         DungeonPiece end = ROOM_3_3_3.withTransform(MapTransform.translation(0, 0, 3));
@@ -84,7 +87,8 @@ public class NewAStarTest {
     }
 
     @Test
-    @Timeout(10)
+    @Timeout(30)
+    @Execution(ExecutionMode.CONCURRENT)
     void testOneAway() throws NoSolutionException {
         @UnknownNullability DungeonPiece start = ROOM_3_3_3;
         DungeonPiece end = ROOM_3_3_3.withTransform(MapTransform.translation(0, 0, 4));

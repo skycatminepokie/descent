@@ -48,7 +48,7 @@ public class NewAStar {
             return List.of();
         }
 
-        open.add(new Node(null, start, entrance, 0, exit.center().getManhattanDistance(entrance.center())));
+        open.add(new Node(null, start, null, 0, exit.center().getManhattanDistance(entrance.center())));
 
         while (!open.isEmpty()) {
             Node parent = open.stream()
@@ -56,10 +56,15 @@ public class NewAStar {
                     .orElseThrow(() -> new ConcurrentModificationException("open set was not empty, but there was nothing in it?"));
             open.remove(parent);
 
-            // Generate successors TODO parallelize
-            var protos = pieces.stream().flatMap(piece -> parent.piece().openings().stream()
-                            .filter(opening -> !opening.equals(parent.entrance()))
-                            .flatMap(piece::matchedWith))
+            Stream<DungeonPiece.Opening> openingStream;
+            if (parent.entrance() == null) { // First piece, only one valid opening
+                openingStream = Stream.of(entrance);
+            } else { // Any other piece, (openings - 1) valid openings
+                openingStream = parent.piece().openings().parallelStream().filter(opening -> !opening.equals(parent.entrance()));
+            }
+
+            // Generate successors
+            var protos = openingStream.flatMap(opening -> pieces.stream().flatMap(piece -> piece.matchedWith(opening))) // Place all possible pieces next to each opening
                     // Don't intersect already-placed pieces
                     .filter(proto -> base.parallelStream().noneMatch(baseBound -> proto.piece().dungeonBounds().intersects(baseBound)))
                     // Don't intersect ancestors
@@ -70,11 +75,12 @@ public class NewAStar {
                     .<AStar.ProtoNode>mapMulti((proto, adder) -> traversePlaced(placedPaths, proto, adder, proto.piece()))
                     .toList();
 
-            for (var proto : protos) { // TODO: Don't recheck equiv. pieces
-                if (proto.piece().isConnected(exit)) { // Found a working path!
+            for (var proto : protos) {
+                if (proto.opening().isConnected(exit)) { // Found a working path!
                     List<DungeonPiece> path = new LinkedList<>();
                     path.add(proto.piece());
                     parent.iterateUp().iterator().forEachRemaining(node -> path.add(node.piece()));
+                    path.remove(start); // Could've avoided this by making it null for the root node, but that was gonna be annoying
                     return path;
                 }
             }
@@ -130,28 +136,27 @@ public class NewAStar {
     private record Node(
             @Nullable Node parent,
             DungeonPiece piece,
-            DungeonPiece.Opening entrance,
+            @Nullable DungeonPiece.Opening entrance,
             int distFromStart,
             int heuristic,
             int estPathLength
     ) {
 
-        private Node(@Nullable Node parent, DungeonPiece piece, DungeonPiece.Opening entrance, int distFromStart, int heuristic) {
+        private Node(@Nullable Node parent, DungeonPiece piece, @Nullable DungeonPiece.Opening entrance, int distFromStart, int heuristic) {
             this(parent, piece, entrance, distFromStart, heuristic, distFromStart + heuristic);
         }
 
-        public static Node fromProto(AStar.ProtoNode proto, @Nullable Node parent, DungeonPiece.Opening pathEntrance, DungeonPiece.Opening pathExit) {
+        public static Node fromProto(AStar.ProtoNode proto, Node parent, DungeonPiece.Opening pathEntrance, DungeonPiece.Opening pathExit) {
             int distFromStart;
-            DungeonPiece.Opening pieceEntrance = proto.opening();
 
-            if (parent != null) {
-                distFromStart = parent.distFromStart() + parent.entrance().center().getManhattanDistance(pieceEntrance.center());
-            } else {
-                distFromStart = pathEntrance.center().getManhattanDistance(pieceEntrance.center());
+            if (parent.entrance() != null) { // Our parent is not the starter
+                distFromStart = parent.distFromStart() + proto.opening().center().getManhattanDistance(parent.entrance().center());
+            } else { // Our parent is the starter
+                distFromStart = proto.opening().center().getManhattanDistance(pathEntrance.center());
             }
             return new Node(parent,
                     proto.piece(),
-                    pieceEntrance,
+                    proto.opening(),
                     distFromStart,
                     pathEntrance.center().getManhattanDistance(pathExit.center()));
         }

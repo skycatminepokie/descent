@@ -209,12 +209,19 @@ public class DungeonPiece {
 
         return openings.stream()
                 .filter(opening -> opening.bounds().size().equals(matchSize))
-                .filter(opening -> opening.direction().equals(matchOpposite))
-                .map(opening -> {
-                    BlockPos diff = toMatch.bounds().min().subtract(opening.bounds().min()).offset(toMatch.direction());
+                .filter(opening -> opening.direction().equals(matchOpposite)) // Matching openings
+                .<AStar.ProtoNode>flatMap(matchedOpening -> {
+                    BlockPos diff = toMatch.bounds().min().subtract(matchedOpening.bounds().min()).offset(toMatch.direction());
                     // new transform for each opening - it'll shift differently if the opening is on the left than if it's on the right
                     MapTransform transform = MapTransform.translation(diff.getX(), diff.getY(), diff.getZ());
-                    return new AStar.ProtoNode(opening.transformed(transform), this.withTransform(transform));
+                    // TODO Wrote while sleepy, so clean up if needed. I think it's faster since we're only re-transforming one and not searching agin.
+                    List<Opening> newOpenings = openings.stream()
+                            .map(o -> o.transformed(transform))
+                            .toList();
+                    DungeonPiece newPiece = new DungeonPiece(transform.transformedBounds(dungeonBounds), newOpenings, template, this.transform.copyWith(transform), id);
+                    Opening transformedMatchedOpening = matchedOpening.transformed(transform);
+                    return newOpenings.stream().filter(o -> !o.equals(transformedMatchedOpening))
+                            .map(o -> new AStar.ProtoNode(o, newPiece));
                 });
     }
 
