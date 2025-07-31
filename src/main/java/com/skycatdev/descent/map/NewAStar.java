@@ -106,7 +106,7 @@ public class NewAStar {
     }
 
     private static void traversePlaced(Collection<DungeonPiece> placed, AStar.ProtoNode node, Consumer<AStar.ProtoNode> adder, DungeonPiece root) {
-        // TODO: Fix bad heuristics
+        // TODO: More accurate heuristics? it will be shorter, so we could just call that our "reused path" bonus.
         if (placed.isEmpty()) {
             adder.accept(node);
             return;
@@ -147,18 +147,16 @@ public class NewAStar {
         }
 
         public static Node fromProto(AStar.ProtoNode proto, Node parent, DungeonPiece.Opening pathEntrance, DungeonPiece.Opening pathExit) {
-            int distFromStart;
+            DungeonPiece.Opening parentEntrance = parent.entrance() != null ? parent.entrance() : pathEntrance;
 
-            if (parent.entrance() != null) { // Our parent is not the starter
-                distFromStart = parent.distFromStart() + proto.opening().center().getManhattanDistance(parent.entrance().center());
-            } else { // Our parent is the starter
-                distFromStart = proto.opening().center().getManhattanDistance(pathEntrance.center());
-            }
+            int distFromStart = parent.distFromStart() + proto.opening().center().getManhattanDistance(parentEntrance.center());
+            int heuristic = parent.estPathLength() + proto.opening().center().getManhattanDistance(parentEntrance.center());
+
             return new Node(parent,
                     proto.piece(),
                     proto.opening(),
                     distFromStart,
-                    pathEntrance.center().getManhattanDistance(pathExit.center()));
+                    heuristic);
         }
 
         public Stream<Node> streamPath() {
