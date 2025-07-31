@@ -227,9 +227,9 @@ public class DungeonPiece {
         }
 
         public boolean isConnected(Opening opening) {
-            return opening.direction().getOpposite().equals(this.direction()) &&
-                   opening.bounds().size().equals(this.bounds().size()) &&
-                   opening.center().getManhattanDistance(this.center()) == 1;
+            return this.direction().equals(opening.direction().getOpposite()) &&
+                   this.bounds().size().equals(opening.bounds().size()) &&
+                   this.center().offset(this.direction()).equals(opening.center());
         }
     }
 }

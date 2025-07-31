@@ -81,4 +81,20 @@ public class DungeonPieceTest {
                 .containsExactlyInAnyOrderElementsOf(expectedOpenings);
     }
 
+    @Test
+    void notConnectedUp() {
+        for (Direction otherDir : Direction.values()) {
+            if (otherDir != Direction.DOWN) {
+                assertThat(HALL_1_1_1.isConnected(new DungeonPiece.Opening(BlockBounds.ofBlock(new BlockPos(0, 1, 0)), otherDir)))
+                        .isFalse();
+            }
+        }
+    }
+
+    @Test
+    void connectedUp() {
+        assertThat(HALL_1_1_1.isConnected(new DungeonPiece.Opening(BlockBounds.ofBlock(new BlockPos(0, 1, 0)), Direction.DOWN)))
+                .isTrue();
+    }
+
 }
