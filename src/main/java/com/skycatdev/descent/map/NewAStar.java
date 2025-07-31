@@ -44,6 +44,10 @@ public class NewAStar {
         DungeonPiece.Opening entrance = Utils.randomFromList(start.openings(), random);
         DungeonPiece.Opening exit = Utils.randomFromList(end.openings(), random);
 
+        if (entrance.isConnected(exit)) {
+            return List.of();
+        }
+
         open.add(new Node(null, start, entrance, 0, exit.center().getManhattanDistance(entrance.center())));
 
         while (!open.isEmpty()) {
@@ -66,7 +70,7 @@ public class NewAStar {
                     .<AStar.ProtoNode>mapMulti((proto, adder) -> traversePlaced(placedPaths, proto, adder, proto.piece()))
                     .toList();
 
-            for (var proto : protos) {
+            for (var proto : protos) { // TODO: Don't recheck equiv. pieces
                 if (proto.piece().isConnected(exit)) { // Found a working path!
                     List<DungeonPiece> path = new LinkedList<>();
                     path.add(proto.piece());
