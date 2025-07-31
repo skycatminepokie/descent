@@ -10,6 +10,8 @@ import net.minecraft.util.math.Direction;
 import org.jetbrains.annotations.UnknownNullability;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
 import xyz.nucleoid.map_templates.MapTransform;
@@ -21,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class DungeonPieceTest {
     protected static @UnknownNullability DungeonPiece HALL_1_1_1;
     protected static @UnknownNullability DungeonPiece ROOM_3_3_3;
+    protected static @UnknownNullability MapTemplate HALL_1_1_1_TEMPLATE;
 
     @BeforeAll
     static void setup() {
@@ -30,6 +33,7 @@ public class DungeonPieceTest {
         hall_1_1_1.setBlockState(BlockPos.ORIGIN, Blocks.SPONGE.getDefaultState());
         hall_1_1_1.getMetadata().addRegion(DungeonPiece.OPENING_MARKER, BlockBounds.ofBlock(BlockPos.ORIGIN));
         hall_1_1_1.getMetadata().addRegion(DungeonPiece.DUNGEON_MARKER, BlockBounds.ofBlock(BlockPos.ORIGIN));
+        HALL_1_1_1_TEMPLATE = hall_1_1_1;
         HALL_1_1_1 = new DungeonPiece(hall_1_1_1, Identifier.of(Descent.MOD_ID, "test/hall_1_1_1"));
 
         MapTemplate room_3_3_3 = MapTemplate.createEmpty();
@@ -49,6 +53,7 @@ public class DungeonPieceTest {
     }
 
     @Test
+    @Execution(ExecutionMode.CONCURRENT)
     void base1_1_1() {
         List<DungeonPiece.Opening> expected = List.of(new DungeonPiece.Opening(BlockBounds.ofBlock(BlockPos.ORIGIN), Direction.UP),
                 new DungeonPiece.Opening(BlockBounds.ofBlock(BlockPos.ORIGIN), Direction.DOWN),
@@ -62,6 +67,7 @@ public class DungeonPieceTest {
     }
 
     @Test
+    @Execution(ExecutionMode.CONCURRENT)
     void translation1_1_1() {
         BlockBounds expectedBounds = BlockBounds.ofBlock(new BlockPos(1, 1, 1));
         List<DungeonPiece.Opening> expectedOpenings = List.of(new DungeonPiece.Opening(expectedBounds, Direction.UP),
@@ -82,6 +88,7 @@ public class DungeonPieceTest {
     }
 
     @Test
+    @Execution(ExecutionMode.CONCURRENT)
     void notConnectedUp() {
         for (Direction otherDir : Direction.values()) {
             if (otherDir != Direction.DOWN) {
@@ -92,9 +99,38 @@ public class DungeonPieceTest {
     }
 
     @Test
+    @Execution(ExecutionMode.CONCURRENT)
     void connectedUp() {
         assertThat(HALL_1_1_1.isConnected(new DungeonPiece.Opening(BlockBounds.ofBlock(new BlockPos(0, 1, 0)), Direction.DOWN)))
                 .isTrue();
+    }
+
+    @Test
+    @Execution(ExecutionMode.CONCURRENT)
+    void findOpenings1_1_1() {
+        BlockBounds expectedBounds = BlockBounds.ofBlock(BlockPos.ORIGIN);
+        List<DungeonPiece.Opening> expectedOpenings = List.of(new DungeonPiece.Opening(expectedBounds, Direction.UP),
+                new DungeonPiece.Opening(expectedBounds, Direction.DOWN),
+                new DungeonPiece.Opening(expectedBounds, Direction.NORTH),
+                new DungeonPiece.Opening(expectedBounds, Direction.EAST),
+                new DungeonPiece.Opening(expectedBounds, Direction.SOUTH),
+                new DungeonPiece.Opening(expectedBounds, Direction.WEST));
+        assertThat(DungeonPiece.findOpenings(HALL_1_1_1_TEMPLATE, Identifier.of(Descent.MOD_ID, "test/hall_1_1_1"), null))
+                .containsExactlyInAnyOrderElementsOf(expectedOpenings);
+    }
+
+    @Test
+    @Execution(ExecutionMode.CONCURRENT)
+    void findOpenings1_1_1Transformed() {
+        BlockBounds expectedBounds = BlockBounds.ofBlock(new BlockPos(1, 2, 3));
+        List<DungeonPiece.Opening> expectedOpenings = List.of(new DungeonPiece.Opening(expectedBounds, Direction.UP),
+                new DungeonPiece.Opening(expectedBounds, Direction.DOWN),
+                new DungeonPiece.Opening(expectedBounds, Direction.NORTH),
+                new DungeonPiece.Opening(expectedBounds, Direction.EAST),
+                new DungeonPiece.Opening(expectedBounds, Direction.SOUTH),
+                new DungeonPiece.Opening(expectedBounds, Direction.WEST));
+        assertThat(DungeonPiece.findOpenings(HALL_1_1_1_TEMPLATE, Identifier.of(Descent.MOD_ID, "test/hall_1_1_1"), MapTransform.translation(1, 2, 3)))
+                .containsExactlyInAnyOrderElementsOf(expectedOpenings);
     }
 
 }

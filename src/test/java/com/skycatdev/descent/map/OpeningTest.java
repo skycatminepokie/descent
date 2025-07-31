@@ -3,6 +3,8 @@ package com.skycatdev.descent.map;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTransform;
 
@@ -10,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class OpeningTest { // TODO: Unconnected tests
     @Test
+    @Execution(ExecutionMode.CONCURRENT)
     void connectedEW() {
         DungeonPiece.Opening a = new DungeonPiece.Opening(BlockBounds.ofBlock(BlockPos.ORIGIN), Direction.EAST);
         DungeonPiece.Opening b = new DungeonPiece.Opening(BlockBounds.ofBlock(BlockPos.ORIGIN.east()), Direction.WEST);
@@ -20,6 +23,7 @@ class OpeningTest { // TODO: Unconnected tests
     }
 
     @Test
+    @Execution(ExecutionMode.CONCURRENT)
     void connectedUD() {
         DungeonPiece.Opening a = new DungeonPiece.Opening(BlockBounds.ofBlock(BlockPos.ORIGIN), Direction.UP);
         DungeonPiece.Opening b = new DungeonPiece.Opening(BlockBounds.ofBlock(BlockPos.ORIGIN.up()), Direction.DOWN);
@@ -30,6 +34,7 @@ class OpeningTest { // TODO: Unconnected tests
     }
 
     @Test
+    @Execution(ExecutionMode.CONCURRENT)
     void connectedNS() {
         DungeonPiece.Opening a = new DungeonPiece.Opening(BlockBounds.ofBlock(BlockPos.ORIGIN), Direction.NORTH);
         DungeonPiece.Opening b = new DungeonPiece.Opening(BlockBounds.ofBlock(BlockPos.ORIGIN.north()), Direction.SOUTH);
@@ -40,6 +45,7 @@ class OpeningTest { // TODO: Unconnected tests
     }
 
     @Test
+    @Execution(ExecutionMode.CONCURRENT)
     void transformedTranslate() {
         // TODO: maybe enumerate a bunch of things?
         DungeonPiece.Opening expected = new DungeonPiece.Opening(BlockBounds.ofBlock(new BlockPos(1, 2, 3)), Direction.UP);

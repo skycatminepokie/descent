@@ -64,16 +64,26 @@ public class DungeonPiece {
         this.id = id;
     }
 
+    /**
+     * @return Transformed bounds iff template is transformed, otherwise untransformed bounds.
+     */
     protected static BlockBounds dungeonBounds(MapTemplate template) {
         return Objects.requireNonNull(template.getMetadata().getFirstRegionBounds(DUNGEON_MARKER)); // TODO: no reqnonnull
     }
 
+    /**
+     *
+     * @param template Untransformed template
+     * @param id
+     * @param transform
+     * @return
+     */
     protected static List<Opening> findOpenings(MapTemplate template, Identifier id, @Nullable MapTransform transform) {
         BlockBounds map = dungeonBounds(template);
-        Stream<BlockBounds> openingBounds = template.getMetadata().getRegionBounds(OPENING_MARKER);
+        Stream<BlockBounds> untransformedOpeningBounds = template.getMetadata().getRegionBounds(OPENING_MARKER);
 
         // TODO: Move this into a conditional initialization
-        Stream<Opening> openings = openingBounds.<Opening>mapMulti((bounds, adder) -> {
+        Stream<Opening> openings = untransformedOpeningBounds.<Opening>mapMulti((bounds, adder) -> {
             BlockPos size = bounds.size();
             // The size component that is 0 will be one block thick. The corresponding opening component (min or max):
             // will match the min component of the map when the direction is negative

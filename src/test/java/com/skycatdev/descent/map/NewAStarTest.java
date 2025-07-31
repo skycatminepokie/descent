@@ -82,4 +82,31 @@ public class NewAStarTest {
                     .hasSize(0);
         }
     }
+
+    @Test
+    @Timeout(10)
+    void testOneAway() throws NoSolutionException {
+        @UnknownNullability DungeonPiece start = ROOM_3_3_3;
+        DungeonPiece end = ROOM_3_3_3.withTransform(MapTransform.translation(0, 0, 4));
+        List<DungeonPiece> base = List.of(start, end);
+        List<Pair<DungeonPiece, DungeonPiece>> toConnect = List.of(new Pair<>(start, end));
+        List<DungeonPiece> pieces = List.of(HALL_1_1_1);
+        Random random = Random.create(0);
+        DungeonPiece.Opening entrance = start.openings().stream().filter(o -> o.direction().equals(Direction.SOUTH))
+                .findFirst()
+                .orElseThrow();
+        DungeonPiece.Opening exit = end.openings().stream().filter(o -> o.direction().equals(Direction.NORTH))
+                .findFirst()
+                .orElseThrow();
+        Collection<DungeonPiece> expected = List.of(HALL_1_1_1.withTransform(MapTransform.translation(1, 1, 3)));
+
+
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
+            mockedUtils.when(() -> Utils.randomFromList(anyList(), any()))
+                    .thenReturn(entrance, exit);
+            Collection<DungeonPiece> actual = NewAStar.generatePath(base, toConnect, pieces, random);
+            assertThat(actual)
+                    .containsExactlyInAnyOrderElementsOf(expected);
+        }
+    }
 }
