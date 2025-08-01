@@ -70,18 +70,18 @@ public class DungeonGenerator {
 
         if (Descent.LOGGER.isTraceEnabled()) {
             int i = 0;
-            System.out.println("Path dump (centers): ");
-            StringBuilder sb = new StringBuilder("l=");
+            StringBuilder points = new StringBuilder();
+            StringBuilder line = new StringBuilder("l=");
             for (DungeonPiece piece : paths) {
                 Vec3d center = piece.dungeonBounds().center();
-                System.out.printf("p_{%d}=(%d,%d,%d)\n", i, (int) Math.ceil(center.getX()), (int) Math.ceil(center.getY()), (int) Math.ceil(center.getZ()));
-                sb.append("p_{");
-                sb.append(i);
-                sb.append("},");
+                points.append(String.format("p_{%d}=(%d,%d,%d)\n", i, (int) Math.ceil(center.getX()), (int) Math.ceil(center.getY()), (int) Math.ceil(center.getZ())));
+                line.append("p_{");
+                line.append(i);
+                line.append("},");
                 i++;
             }
-            sb.deleteCharAt(sb.length() - 1);
-            System.out.println(sb);
+            line.deleteCharAt(line.length() - 1);
+            Descent.LOGGER.trace("Path dump (centers):\n{}{}", points, line);
         }
 
         List<MapTemplate> templates = new ArrayList<>();
