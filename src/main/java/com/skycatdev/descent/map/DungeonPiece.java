@@ -204,7 +204,7 @@ public class DungeonPiece {
     }
 
     public MapTemplate toTemplate() {
-        return template;
+        return template.transformed(transform);
     }
 
     /**
