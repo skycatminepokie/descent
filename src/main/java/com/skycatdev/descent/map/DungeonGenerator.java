@@ -30,7 +30,7 @@ public class DungeonGenerator {
         for (int i = 0; i < config.numberOfRooms() - 2; i++) { // -2 to account for start and end
             DungeonPiece room = loadPiece(config.rooms().get(random), server);
             Vec3i center = BlockPos.ofFloored(room.dungeonBounds().center());
-            room.withTransform(MapTransform.translation(-center.getX(), -center.getY(), -center.getZ())); // Center the room
+            room = room.withTransform(MapTransform.translation(-center.getX(), -center.getY(), -center.getZ())); // Center the room
             rooms.add(room);
         }
 
@@ -68,10 +68,11 @@ public class DungeonGenerator {
             connections.add(new Pair<>(pieceLookup.get(edge.u()), pieceLookup.get(edge.v())));
         }
 
-        Collection<DungeonPiece> paths = NewAStar.generatePath(rooms, connections, pathPieces, random);
+        Collection<DungeonPiece> paths = AStar.generatePath(rooms, connections, pathPieces, random);
 
-        {
-            int i = 0; // TODO DEBUG ONLY
+        if (Descent.LOGGER.isTraceEnabled()) {
+            int i = 0;
+            System.out.println("Path dump (centers): ");
             StringBuilder sb = new StringBuilder("l=");
             for (DungeonPiece piece : paths) {
                 Vec3d center = piece.dungeonBounds().center();
@@ -121,6 +122,7 @@ public class DungeonGenerator {
     @SuppressWarnings("UnusedReturnValue")
     @Contract("_,_,_->param3")
     private static List<DungeonPiece> steerRooms(MapConfig config, Random random, List<DungeonPiece> rooms) {
+        Descent.LOGGER.debug("Steering {} rooms", rooms.size());
         boolean keepSteering = true;
 
         while (keepSteering) {

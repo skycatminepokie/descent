@@ -30,7 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mockStatic;
 
-public class NewAStarTest {
+public class AStarTest {
     protected static @UnknownNullability DungeonPiece HALL_1_1_1;
     protected static @UnknownNullability DungeonPiece ROOM_3_3_3;
 
@@ -81,7 +81,7 @@ public class NewAStarTest {
         try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
             mockedUtils.when(() -> Utils.randomFromList(anyList(), any()))
                     .thenReturn(entrance, exit);
-            Collection<DungeonPiece> actual = NewAStar.generatePath(base, toConnect, pieces, random);
+            Collection<DungeonPiece> actual = AStar.generatePath(base, toConnect, pieces, random);
             assertThat(actual)
                     .hasSize(0);
         }
@@ -109,7 +109,7 @@ public class NewAStarTest {
         try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
             mockedUtils.when(() -> Utils.randomFromList(anyList(), any()))
                     .thenReturn(entrance, exit);
-            Collection<DungeonPiece> actual = NewAStar.generatePath(base, toConnect, pieces, random);
+            Collection<DungeonPiece> actual = AStar.generatePath(base, toConnect, pieces, random);
             assertThat(actual)
                     .containsExactlyInAnyOrderElementsOf(expected);
         }
@@ -138,7 +138,7 @@ public class NewAStarTest {
         try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
             mockedUtils.when(() -> Utils.randomFromList(anyList(), any()))
                     .thenReturn(entrance, exit);
-            Collection<DungeonPiece> actual = NewAStar.generatePath(base, toConnect, pieces, random);
+            Collection<DungeonPiece> actual = AStar.generatePath(base, toConnect, pieces, random);
             assertThat(actual)
                     .containsExactlyInAnyOrderElementsOf(expected);
         }
@@ -169,7 +169,7 @@ public class NewAStarTest {
         try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
             mockedUtils.when(() -> Utils.randomFromList(anyList(), any()))
                     .thenReturn(entrance, exit);
-            Collection<DungeonPiece> actual = NewAStar.generatePath(base, toConnect, pieces, random);
+            Collection<DungeonPiece> actual = AStar.generatePath(base, toConnect, pieces, random);
             assertThat(actual)
                     .containsExactlyInAnyOrderElementsOf(expected);
         }
@@ -191,7 +191,7 @@ public class NewAStarTest {
         List<AStar.ProtoNode> expected = List.of(newNode, new AStar.ProtoNode(placedOpening, placedPiece));
         List<AStar.ProtoNode> actual = new LinkedList<>();
 
-        NewAStar.traversePlaced(placed, newNode, actual::add);
+        AStar.traversePlaced(placed, newNode, actual::add);
         assertThat(actual)
                 .containsExactlyInAnyOrderElementsOf(expected);
     }
@@ -218,7 +218,7 @@ public class NewAStarTest {
                 new AStar.ProtoNode(placedOpening2, placedPiece2));
         List<AStar.ProtoNode> actual = new LinkedList<>();
 
-        NewAStar.traversePlaced(placed, newNode, actual::add);
+        AStar.traversePlaced(placed, newNode, actual::add);
         assertThat(actual)
                 .containsExactlyInAnyOrderElementsOf(expected);
     }
