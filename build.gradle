@@ -16,6 +16,7 @@ repositories {
 
 loom {
 	splitEnvironmentSourceSets()
+	log4jConfigs.from(file("log4j-dev.xml"))
 
 	mods {
 		"descent" {

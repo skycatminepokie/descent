@@ -101,7 +101,7 @@ public class DungeonGenerator {
         }
 
         if (minY < 0) {
-            Descent.LOGGER.info("Translating y by {}", minY); // TODO: Set to debug
+            Descent.LOGGER.debug("Translating y by {}", minY);
             for (int i = 0; i < templates.size(); i++) {
                 templates.set(i, templates.get(i).translated(0, -minY, 0));
             }
