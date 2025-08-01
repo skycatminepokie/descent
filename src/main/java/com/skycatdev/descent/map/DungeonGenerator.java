@@ -38,7 +38,7 @@ public class DungeonGenerator {
 
         steerRooms(config, random, rooms);
 
-        // Possibly better than a lookup, but this will do
+        // There's probably something better than a lookup, but this will do
         Map<Vec3d, DungeonPiece> pieceLookup = new HashMap<>();
         List<Vec3d> centers = new LinkedList<>();
 
@@ -61,7 +61,6 @@ public class DungeonGenerator {
 
         List<Pair<DungeonPiece, DungeonPiece>> connections = new LinkedList<>();
 
-        // TODO: Don't allow b -> a if we have a -> b
         for (Edge edge : resultingEdges) {
             connections.add(new Pair<>(pieceLookup.get(edge.u()), pieceLookup.get(edge.v())));
         }
@@ -100,7 +99,7 @@ public class DungeonGenerator {
         }
 
         if (minY < 0) {
-            Descent.LOGGER.debug("Translating y by {}", minY);
+            Descent.LOGGER.debug("Translating y by {}", -minY);
             for (int i = 0; i < templates.size(); i++) {
                 templates.set(i, templates.get(i).translated(0, -minY, 0));
             }

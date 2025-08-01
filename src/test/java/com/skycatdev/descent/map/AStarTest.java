@@ -177,7 +177,7 @@ public class AStarTest {
 
     @Test
     @Execution(ExecutionMode.CONCURRENT)
-    void traversePlacedOne() {
+    void addAlreadyPlacedOne() {
         DungeonPiece.Opening entrance = HALL_1_1_1.openings().stream().filter(o -> o.direction().equals(Direction.NORTH))
                 .findFirst()
                 .orElseThrow();
@@ -191,14 +191,14 @@ public class AStarTest {
         List<AStar.ProtoNode> expected = List.of(newNode, new AStar.ProtoNode(placedOpening, placedPiece));
         List<AStar.ProtoNode> actual = new LinkedList<>();
 
-        AStar.traversePlaced(placed, newNode, actual::add);
+        AStar.addAlreadyPlaced(placed, newNode, actual::add);
         assertThat(actual)
                 .containsExactlyInAnyOrderElementsOf(expected);
     }
 
     @Test
     @Execution(ExecutionMode.CONCURRENT)
-    void traversePlacedTwo() {
+    void addAlreadyPlacedTwo() {
         DungeonPiece.Opening entrance = HALL_1_1_1.openings().stream().filter(o -> o.direction().equals(Direction.NORTH))
                 .findFirst()
                 .orElseThrow();
@@ -207,18 +207,14 @@ public class AStarTest {
                 .findFirst()
                 .orElseThrow();
         DungeonPiece placedPiece2 = HALL_1_1_1.withTransform(MapTransform.translation(0, 0, 2));
-        DungeonPiece.Opening placedOpening2 = placedPiece2.openings().stream().filter(o -> o.direction().equals(Direction.NORTH))
-                .findFirst()
-                .orElseThrow();
 
         Collection<DungeonPiece> placed = List.of(placedPiece, placedPiece2);
         AStar.ProtoNode newNode = new AStar.ProtoNode(entrance, HALL_1_1_1);
         List<AStar.ProtoNode> expected = List.of(newNode,
-                new AStar.ProtoNode(placedOpening, placedPiece),
-                new AStar.ProtoNode(placedOpening2, placedPiece2));
+                new AStar.ProtoNode(placedOpening, placedPiece));
         List<AStar.ProtoNode> actual = new LinkedList<>();
 
-        AStar.traversePlaced(placed, newNode, actual::add);
+        AStar.addAlreadyPlaced(placed, newNode, actual::add);
         assertThat(actual)
                 .containsExactlyInAnyOrderElementsOf(expected);
     }

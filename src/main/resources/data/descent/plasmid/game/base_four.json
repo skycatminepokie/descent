@@ -1,0 +1,31 @@
+{
+  "type": "descent:descent",
+  "name": "Descent",
+  "mapConfig": {
+    "starts": [
+      {
+        "data": "descent:test/test_room_3_3_3",
+        "weight": 1
+      }
+    ],
+    "ends": [
+      {
+        "data": "descent:test/test_room_3_3_3",
+        "weight": 1
+      }
+    ],
+    "paths": [
+      "descent:test/test_hall_1_1_1"
+    ],
+    "rooms": [
+      {
+        "data": "descent:test/test_room_3_3_3",
+        "weight": 1
+      }
+    ],
+    "numberOfRooms": 4,
+    "minSeparationX": 2,
+    "minSeparationY": 2,
+    "minSeparationZ": 2
+  }
+}

@@ -76,7 +76,7 @@ public class AStar {
                             .map(DungeonPiece::dungeonBounds)
                             .noneMatch(ancestorBounds -> proto.piece().dungeonBounds().intersects(ancestorBounds)))
                     // Iterate already placed
-                    .<ProtoNode>mapMulti((proto, adder) -> traversePlaced(placedPaths, proto, adder))
+                    .<ProtoNode>mapMulti((proto, adder) -> addAlreadyPlaced(placedPaths, proto, adder))
                     .toList();
 
             for (var proto : protos) {
@@ -130,7 +130,7 @@ public class AStar {
         }
     }
 
-    protected static void traversePlaced(Collection<DungeonPiece> placed, ProtoNode node, Consumer<ProtoNode> adder) {
+    protected static void addAlreadyPlaced(Collection<DungeonPiece> placed, ProtoNode node, Consumer<ProtoNode> adder) {
         // TODO: More accurate heuristics? it will be shorter, so we could just call that our "reused path" bonus.
         if (placed.isEmpty()) {
             adder.accept(node);
@@ -143,10 +143,8 @@ public class AStar {
 
             for (DungeonPiece piece : placed) {
                 @Nullable DungeonPiece.Opening connected = piece.getConnected(siblingOpening);
-                if (connected != null) { // If there's another piece to traverse
-                    List<DungeonPiece> toSearch = new LinkedList<>(placed);
-                    toSearch.remove(piece); // Don't loop back
-                    traversePlaced(toSearch, new ProtoNode(connected, piece), adder);
+                if (connected != null) { // Found a connecting piece that's placed
+                    adder.accept(new ProtoNode(connected, piece));
                 } else {
                     surrounded = false;
                 }
