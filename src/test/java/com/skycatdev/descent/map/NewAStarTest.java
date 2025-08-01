@@ -22,6 +22,7 @@ import xyz.nucleoid.map_templates.MapTemplate;
 import xyz.nucleoid.map_templates.MapTransform;
 
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -172,5 +173,53 @@ public class NewAStarTest {
             assertThat(actual)
                     .containsExactlyInAnyOrderElementsOf(expected);
         }
+    }
+
+    @Test
+    @Execution(ExecutionMode.CONCURRENT)
+    void traversePlacedOne() {
+        DungeonPiece.Opening entrance = HALL_1_1_1.openings().stream().filter(o -> o.direction().equals(Direction.NORTH))
+                .findFirst()
+                .orElseThrow();
+        DungeonPiece placedPiece = HALL_1_1_1.withTransform(MapTransform.translation(0, 0, 1));
+        DungeonPiece.Opening placedOpening = placedPiece.openings().stream().filter(o -> o.direction().equals(Direction.NORTH))
+                .findFirst()
+                .orElseThrow();
+
+        Collection<DungeonPiece> placed = List.of(placedPiece);
+        AStar.ProtoNode newNode = new AStar.ProtoNode(entrance, HALL_1_1_1);
+        List<AStar.ProtoNode> expected = List.of(newNode, new AStar.ProtoNode(placedOpening, placedPiece));
+        List<AStar.ProtoNode> actual = new LinkedList<>();
+
+        NewAStar.traversePlaced(placed, newNode, actual::add);
+        assertThat(actual)
+                .containsExactlyInAnyOrderElementsOf(expected);
+    }
+
+    @Test
+    @Execution(ExecutionMode.CONCURRENT)
+    void traversePlacedTwo() {
+        DungeonPiece.Opening entrance = HALL_1_1_1.openings().stream().filter(o -> o.direction().equals(Direction.NORTH))
+                .findFirst()
+                .orElseThrow();
+        DungeonPiece placedPiece = HALL_1_1_1.withTransform(MapTransform.translation(0, 0, 1));
+        DungeonPiece.Opening placedOpening = placedPiece.openings().stream().filter(o -> o.direction().equals(Direction.NORTH))
+                .findFirst()
+                .orElseThrow();
+        DungeonPiece placedPiece2 = HALL_1_1_1.withTransform(MapTransform.translation(0, 0, 2));
+        DungeonPiece.Opening placedOpening2 = placedPiece2.openings().stream().filter(o -> o.direction().equals(Direction.NORTH))
+                .findFirst()
+                .orElseThrow();
+
+        Collection<DungeonPiece> placed = List.of(placedPiece, placedPiece2);
+        AStar.ProtoNode newNode = new AStar.ProtoNode(entrance, HALL_1_1_1);
+        List<AStar.ProtoNode> expected = List.of(newNode,
+                new AStar.ProtoNode(placedOpening, placedPiece),
+                new AStar.ProtoNode(placedOpening2, placedPiece2));
+        List<AStar.ProtoNode> actual = new LinkedList<>();
+
+        NewAStar.traversePlaced(placed, newNode, actual::add);
+        assertThat(actual)
+                .containsExactlyInAnyOrderElementsOf(expected);
     }
 }

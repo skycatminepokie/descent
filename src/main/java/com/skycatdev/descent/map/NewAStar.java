@@ -72,7 +72,7 @@ public class NewAStar {
                             .map(DungeonPiece::dungeonBounds)
                             .noneMatch(ancestorBounds -> proto.piece().dungeonBounds().intersects(ancestorBounds)))
                     // Iterate already placed
-                    .<AStar.ProtoNode>mapMulti((proto, adder) -> traversePlaced(placedPaths, proto, adder, proto.piece()))
+                    .<AStar.ProtoNode>mapMulti((proto, adder) -> traversePlaced(placedPaths, proto, adder))
                     .toList();
 
             for (var proto : protos) {
@@ -126,7 +126,7 @@ public class NewAStar {
         }
     }
 
-    private static void traversePlaced(Collection<DungeonPiece> placed, AStar.ProtoNode node, Consumer<AStar.ProtoNode> adder, DungeonPiece root) {
+    protected static void traversePlaced(Collection<DungeonPiece> placed, AStar.ProtoNode node, Consumer<AStar.ProtoNode> adder) {
         // TODO: More accurate heuristics? it will be shorter, so we could just call that our "reused path" bonus.
         if (placed.isEmpty()) {
             adder.accept(node);
@@ -142,7 +142,7 @@ public class NewAStar {
                 if (connected != null) { // If there's another piece to traverse
                     List<DungeonPiece> toSearch = new LinkedList<>(placed);
                     toSearch.remove(piece); // Don't loop back
-                    traversePlaced(toSearch, new AStar.ProtoNode(connected, piece), adder, root);
+                    traversePlaced(toSearch, new AStar.ProtoNode(connected, piece), adder);
                 } else {
                     surrounded = false;
                 }
@@ -171,7 +171,7 @@ public class NewAStar {
             DungeonPiece.Opening parentEntrance = parent.entrance() != null ? parent.entrance() : pathEntrance;
 
             int distFromStart = parent.distFromStart() + proto.opening().center().getManhattanDistance(parentEntrance.center());
-            int heuristic = parent.estPathLength() + proto.opening().center().getManhattanDistance(parentEntrance.center());
+            int heuristic = parent.estPathLength() + proto.opening().center().getManhattanDistance(pathExit.center());
 
             return new Node(parent,
                     proto.piece(),

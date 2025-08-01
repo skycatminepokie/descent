@@ -1,5 +1,6 @@
 package com.skycatdev.descent.map;
 
+import com.skycatdev.descent.Descent;
 import com.skycatdev.descent.config.MapConfig;
 import com.skycatdev.descent.utils.Utils;
 import net.minecraft.block.Blocks;
@@ -69,24 +70,48 @@ public class DungeonGenerator {
 
         Collection<DungeonPiece> paths = NewAStar.generatePath(rooms, connections, pathPieces, random);
 
-        List<MapTemplate> templates = new LinkedList<>();
+        {
+            int i = 0; // TODO DEBUG ONLY
+            StringBuilder sb = new StringBuilder("l=");
+            for (DungeonPiece piece : paths) {
+                Vec3d center = piece.dungeonBounds().center();
+                System.out.printf("p_{%d}=(%d,%d,%d)\n", i, (int) Math.ceil(center.getX()), (int) Math.ceil(center.getY()), (int) Math.ceil(center.getZ()));
+                sb.append("p_{");
+                sb.append(i);
+                sb.append("},");
+                i++;
+            }
+            sb.deleteCharAt(sb.length() - 1);
+            System.out.println(sb);
+        }
+
+        List<MapTemplate> templates = new ArrayList<>();
+
+        int minY = Integer.MAX_VALUE;
         for (DungeonPiece room : rooms) {
-            templates.add(room.toTemplate());
+            MapTemplate roomTemplate = room.toTemplate();
+            minY = Math.min(roomTemplate.getBounds().min().getY(), minY);
+            templates.add(roomTemplate);
         }
 
         for (DungeonPiece path : paths) {
+            MapTemplate pathTemplate = path.toTemplate();
+            minY = Math.min(pathTemplate.getBounds().min().getY(), minY);
             templates.add(path.toTemplate());
         }
+
+        if (minY < 0) {
+            Descent.LOGGER.info("Translating y by {}", minY); // TODO: Set to debug
+            for (int i = 0; i < templates.size(); i++) {
+                templates.set(i, templates.get(i).translated(0, -minY, 0));
+            }
+        }
+
 
         MapTemplate map = templates.getFirst();
 
         for (int i = 1; i < templates.size(); i++) {
             map = MapTemplate.merged(map, templates.get(i));
-        }
-
-        int y = map.getBounds().min().getY();
-        if (y < 0) {
-            map = map.translated(0, -y, 0);
         }
 
         map.setBlockState(BlockPos.ORIGIN, Blocks.SPONGE.getDefaultState());
