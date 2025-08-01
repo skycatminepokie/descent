@@ -10,6 +10,7 @@ import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
 import xyz.nucleoid.map_templates.MapTransform;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -25,7 +26,7 @@ public class DungeonPiece {
     /**
      * Openings, transformed using transform.
      */
-    private final List<Opening> openings;
+    private final Collection<Opening> openings;
     /**
      * Map, NOT yet transformed using transform. Make sure to do that before placing.
      * Don't mutate!
@@ -57,9 +58,9 @@ public class DungeonPiece {
      * @param template The template of the piece BEFORE transforming
      * @param transform The transform to apply to the template before placing
      */
-    protected DungeonPiece(BlockBounds dungeonBounds, List<Opening> openings, MapTemplate template, StackedMapTransform transform, Identifier id) {
+    protected DungeonPiece(BlockBounds dungeonBounds, Collection<Opening> openings, MapTemplate template, StackedMapTransform transform, Identifier id) {
         this.dungeonBounds = dungeonBounds;
-        this.openings = List.copyOf(openings);
+        this.openings = new HashSet<>(openings);
         this.template = template;
         this.transform = transform;
         this.id = id;
@@ -153,6 +154,7 @@ public class DungeonPiece {
     }
 
     public @Nullable Opening getConnected(Opening opening) {
+        if (!dungeonBounds.contains(opening.center().offset(opening.direction()))) return null; // Quick check for a speedup TODO profile
         for (Opening myOpening : openings) {
             if (opening.isConnected(myOpening)) return myOpening;
         }
@@ -185,17 +187,15 @@ public class DungeonPiece {
         return openings().stream().anyMatch(opening -> size.equals(opening.bounds().size()));
     }
 
-    public List<Opening> openings() {
+    public Collection<Opening> openings() {
         return openings;
     }
 
     public boolean equivalentTo(DungeonPiece other) {
-        var otherOpenings = new HashSet<>(other.openings);
-        var myOpenings = new HashSet<>(openings);
-        return otherOpenings.containsAll(myOpenings) &&
-               myOpenings.containsAll(otherOpenings) &&
-               id.equals(other.id) &&
-               dungeonBounds.equals(other.dungeonBounds);
+        if (!id.equals(other.id)) return false;
+        if (!dungeonBounds.equals(other.dungeonBounds)) return false;
+        return new HashSet<>(other.openings).containsAll(new HashSet<Opening>(openings)) &&
+               new HashSet<>(openings).containsAll(new HashSet<Opening>(other.openings));
     }
 
     @Contract("_->new")

@@ -43,8 +43,8 @@ public class AStar {
         }
 
         // Decide on locations to match
-        DungeonPiece.Opening entrance = Utils.randomFromList(start.openings(), random);
-        DungeonPiece.Opening exit = Utils.randomFromList(end.openings(), random);
+        DungeonPiece.Opening entrance = Utils.randomFromList(List.copyOf(start.openings()), random);
+        DungeonPiece.Opening exit = Utils.randomFromList(List.copyOf(end.openings()), random);
 
         if (entrance.isConnected(exit)) {
             return List.of();
