@@ -2,13 +2,11 @@ package com.skycatdev.descent.map;
 
 import com.skycatdev.descent.Descent;
 import com.skycatdev.descent.config.MapConfig;
-import com.skycatdev.descent.utils.Utils;
 import net.minecraft.block.Blocks;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.util.math.random.Random;
@@ -130,7 +128,6 @@ public class DungeonGenerator {
             for (int i = 0; i < rooms.size(); i++) {
                 DungeonPiece main = rooms.get(i);
                 boolean move = false; // Whether this needs to move - handles when things are all zerod out, but still overlapping
-                BlockPos.Mutable totalOverlap = new BlockPos.Mutable(0,0,0);
 
                 for (int j = 0; j < rooms.size(); j++) {
                     if (i == j) continue;
@@ -142,39 +139,17 @@ public class DungeonGenerator {
                     @Nullable BlockBounds intersect = main.dungeonBounds().intersection(avoid);
                     if (intersect != null) {
                         move = true;
-                        BlockPos magnitude = intersect.size();
-                        Vec3d centerDiff = main.dungeonBounds().center().subtract(avoid.center());
-                        totalOverlap.move(Utils.copySign(magnitude, centerDiff));
                     }
                 }
 
                 if (move) {
                     keepSteering = true;
-                    // TODO: Constants may need tweaking
-
-                    // Move it further (double it) TODO May need tweaking
-                    totalOverlap.move(totalOverlap);
-                    // Don't move the piece super far
-                    totalOverlap.clamp(Direction.Axis.X, -config.minSeparationX() * 5, config.minSeparationX() * 5);
-                    totalOverlap.clamp(Direction.Axis.Y, -config.minSeparationY() * 5, config.minSeparationY() * 5);
-                    totalOverlap.clamp(Direction.Axis.Z, -config.minSeparationZ() * 5, config.minSeparationZ() * 5);
-
-                    // Move the piece
-                    if (totalOverlap.getX() != 0 || totalOverlap.getY() != 0 || totalOverlap.getZ() != 0) {
-                        rooms.set(i, main.withTransform(MapTransform.translation(totalOverlap.getX(), totalOverlap.getY(), totalOverlap.getZ())));
-                    } else {
-                        // We're overlapping things, but the forces are cancelling out. Add some randomness to keep moving.
-                        // TODO: Constants may need tweaking
-                        BlockPos.Mutable boundsSize = main.dungeonBounds().size().mutableCopy();
-                        int steerX = Math.max(boundsSize.getX() / 4, 1);
-                        int steerY = Math.max(boundsSize.getY() / 4, 1);
-                        int steerZ = Math.max(boundsSize.getZ() / 4, 1);
-                        rooms.set(i, main.withTransform(MapTransform.translation(random.nextBetween(-steerX, steerX),
-                                        random.nextBetween(-steerY, steerY),
-                                        random.nextBetween(-steerZ, steerZ)
-                                ))
-                        );
-                    }
+                    // TODO: Constants or random formula may need tweaking
+                    int x = random.nextBetween(-config.minSeparationX() * 3, config.minSeparationX() * 3);
+                    int y = random.nextBetween(-config.minSeparationY() * 3, config.minSeparationY() * 3);
+                    int z = random.nextBetween(-config.minSeparationZ() * 3, config.minSeparationZ() * 3);
+                    
+                    rooms.set(i, main.withTransform(MapTransform.translation(x, y, z)));
                 }
             }
         }
