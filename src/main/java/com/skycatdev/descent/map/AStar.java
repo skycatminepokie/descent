@@ -24,7 +24,7 @@ public class AStar {
                 .map(DungeonPiece::dungeonBounds)
                 .toList();
         for (Pair<DungeonPiece, DungeonPiece> connection : toConnect) {
-            Descent.LOGGER.trace("Generating path...");
+            Descent.LOGGER.debug("Generating path...");
             paths.addAll(generatePath(dungeonBounds, connection.getLeft(), connection.getRight(), pieces, paths, random));
         }
         return paths;
@@ -160,7 +160,6 @@ public class AStar {
 
         if (shouldAdd) {
             replaceFrom.add(successor);
-            Descent.LOGGER.trace("Added a node");
         }
     }
 
