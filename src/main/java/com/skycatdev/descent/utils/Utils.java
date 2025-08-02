@@ -1,11 +1,14 @@
 package com.skycatdev.descent.utils;
 
+import com.skycatdev.descent.map.Edge;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.util.math.random.Random;
 import org.jetbrains.annotations.Contract;
 
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 public class Utils {
@@ -40,6 +43,71 @@ public class Utils {
             return lower;
         }
         return value;
+    }
+
+    public static String makeEdgeDump(Iterable<Edge> edges) {
+        return makeEdgeDump(edges.iterator());
+    }
+
+    protected static String makeEdgeDump(Iterator<Edge> edges) {
+        HashMap<Vec3d, Integer> points = new HashMap<>();
+        StringBuilder pointsStr = new StringBuilder();
+        StringBuilder edgeStr = new StringBuilder();
+        int p = 0;
+        int e = 0;
+        while (edges.hasNext()) {
+            Edge edge = edges.next();
+            if (!points.containsKey(edge.u())) {
+                points.put(edge.u(), p);
+                pointsStr.append("p_{")
+                        .append(p)
+                        .append("}=")
+                        .append(edge.u())
+                        .append('\n');
+                p++;
+            }
+            if (!points.containsKey(edge.v())) {
+                points.put(edge.v(), p);
+                pointsStr.append("p_{")
+                        .append(p)
+                        .append("}=")
+                        .append(edge.v())
+                        .append('\n');
+                p++;
+            }
+            edgeStr.append("e_{")
+                    .append(e)
+                    .append("}=")
+                    .append("p_{")
+                    .append(points.get(edge.u()))
+                    .append("}p_{")
+                    .append(points.get(edge.v()))
+                    .append("}\n");
+        }
+        return pointsStr.append(edgeStr)
+                .deleteCharAt(pointsStr.length() - 1)
+                .toString();
+    }
+
+    public static String makePointDump(Iterable<Vec3d> points) {
+        return makePointDump(points.iterator());
+    }
+
+    public static String makePointDump(Iterator<Vec3d> points) {
+        int i = 0;
+        StringBuilder pointsStr = new StringBuilder();
+        StringBuilder line = new StringBuilder("l=");
+
+        while (points.hasNext()) {
+            Vec3d center = points.next();
+            pointsStr.append(String.format("p_{%d}=(%d,%d,%d)\n", i, (int) Math.ceil(center.getX()), (int) Math.ceil(center.getY()), (int) Math.ceil(center.getZ())));
+            line.append("p_{");
+            line.append(i);
+            line.append("},");
+            i++;
+        }
+        line.deleteCharAt(line.length() - 1);
+        return String.format("%s%s", pointsStr, line);
     }
 
     public static Vec3d maxComponentsByAbs(Vec3d a, Vec3d b) {

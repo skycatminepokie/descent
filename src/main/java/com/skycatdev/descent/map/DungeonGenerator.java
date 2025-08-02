@@ -2,6 +2,7 @@ package com.skycatdev.descent.map;
 
 import com.skycatdev.descent.Descent;
 import com.skycatdev.descent.config.MapConfig;
+import com.skycatdev.descent.utils.Utils;
 import net.minecraft.block.Blocks;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
@@ -48,8 +49,16 @@ public class DungeonGenerator {
             pieceLookup.put(center, room);
         }
 
+        if (Descent.LOGGER.isTraceEnabled()) {
+            Descent.LOGGER.trace("Room point dump:\n{}", Utils.makePointDump(centers));
+        }
 
         Set<Edge> allEdges = Delaunay3D.triangulate(centers);
+
+        if (Descent.LOGGER.isTraceEnabled()) {
+            Descent.LOGGER.trace("Delaunay edge dump: \n{}", Utils.makeEdgeDump(allEdges));
+        }
+
         Set<Edge> resultingEdges = Prim.minimumSpanningTree(allEdges, centers.get(random.nextBetween(0, centers.size() - 1)));
 
         for (Edge edge : allEdges) {
@@ -68,19 +77,7 @@ public class DungeonGenerator {
         Collection<DungeonPiece> paths = AStar.generatePath(rooms, connections, pathPieces, random);
 
         if (Descent.LOGGER.isTraceEnabled()) {
-            int i = 0;
-            StringBuilder points = new StringBuilder();
-            StringBuilder line = new StringBuilder("l=");
-            for (DungeonPiece piece : paths) {
-                Vec3d center = piece.dungeonBounds().center();
-                points.append(String.format("p_{%d}=(%d,%d,%d)\n", i, (int) Math.ceil(center.getX()), (int) Math.ceil(center.getY()), (int) Math.ceil(center.getZ())));
-                line.append("p_{");
-                line.append(i);
-                line.append("},");
-                i++;
-            }
-            line.deleteCharAt(line.length() - 1);
-            Descent.LOGGER.trace("Path dump (centers):\n{}{}", points, line);
+            Descent.LOGGER.trace("Path dump (centers): \n{}", Utils.makePointDump(paths.stream().map(p -> p.dungeonBounds().center()).iterator()));
         }
 
         List<MapTemplate> templates = new ArrayList<>();
@@ -168,5 +165,4 @@ public class DungeonGenerator {
         }
         return pieces;
     }
-
 }

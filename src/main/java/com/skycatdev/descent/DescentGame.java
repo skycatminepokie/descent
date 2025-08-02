@@ -2,6 +2,7 @@ package com.skycatdev.descent;
 
 import com.skycatdev.descent.config.DescentConfig;
 import com.skycatdev.descent.map.DungeonGenerator;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Vec3d;
@@ -31,11 +32,17 @@ public class DescentGame {
 
     public static GameOpenProcedure open(GameOpenContext<DescentConfig> context) {
         DescentConfig config = context.config();
+        Random random = Random.create();
+        if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
+            int seed = -65299027;
+            Descent.LOGGER.debug("Using seed {}", seed);
+            random = Random.create(seed);
+        }
 
         RuntimeWorldConfig worldConfig;
         try {
             worldConfig = new RuntimeWorldConfig()
-                    .setGenerator(new TemplateChunkGenerator(context.server(), DungeonGenerator.generate(config.mapConfig(), context.server(), Random.create())))
+                    .setGenerator(new TemplateChunkGenerator(context.server(), DungeonGenerator.generate(config.mapConfig(), context.server(), random)))
 //                    .setGenerator(new TemplateChunkGenerator(context.server(), MapTemplateSerializer.loadFrom(new FileInputStream(context.server().getRunDirectory().resolve("builtsponge.nbt").toFile()), context.server().getRegistryManager())))
                     .setTimeOfDay(6000);
 //        } catch (IOException | NoSolutionException e) {
