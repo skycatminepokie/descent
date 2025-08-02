@@ -50,6 +50,7 @@ public class Utils {
     }
 
     protected static String makeEdgeDump(Iterator<Edge> edges) {
+        if (!edges.hasNext()) return "No edges";
         HashMap<Vec3d, Integer> points = new HashMap<>();
         StringBuilder pointsStr = new StringBuilder();
         StringBuilder edgeStr = new StringBuilder();
@@ -80,7 +81,7 @@ public class Utils {
                     .append("}=")
                     .append("p_{")
                     .append(points.get(edge.u()))
-                    .append("}p_{")
+                    .append("},p_{")
                     .append(points.get(edge.v()))
                     .append("}\n");
         }

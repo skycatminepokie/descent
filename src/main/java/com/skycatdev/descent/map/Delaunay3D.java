@@ -39,12 +39,15 @@ public class Delaunay3D {
                     new Edge(vertices.getLast(), vertices.getFirst()));
         }
 
-        // Find bounds
+        return uniqueEdgesOf(tetrahedralize(vertices));
+    }
 
+    public static List<Tetrahedron> tetrahedralize(Collection<Vec3d> vertices) {
+        // Find bounds
+        double minX, minY, minZ;
+        minX = minY = minZ = Double.MAX_VALUE;
         double maxX, maxY, maxZ;
-        double minX = maxX = vertices.getFirst().getX();
-        double minY = maxY = vertices.getFirst().getY();
-        double minZ = maxZ = vertices.getFirst().getZ();
+        maxX = maxY = maxZ = Double.MIN_VALUE;
 
         for (Vec3d vertex : vertices) {
             if (vertex.getX() < minX) minX = vertex.getX();
@@ -104,13 +107,16 @@ public class Delaunay3D {
             }
         }
 
-//        // Get rid of the tetrahedra that have the vertices of the big tetrahedron - now we don't have those points in
-//        // our graph.
-//        tetrahedra.removeIf(t -> t.hasVertex(p1) ||
-//                                 t.hasVertex(p2) ||
-//                                 t.hasVertex(p3) ||
-//                                 t.hasVertex(p4));
+        tetrahedra.removeIf(t -> t.hasVertex(p1) ||
+                                 t.hasVertex(p2) ||
+                                 t.hasVertex(p3) ||
+                                 t.hasVertex(p4));
+        // Get rid of the tetrahedra that have the vertices of the big tetrahedron - now we don't have those points in
+        // our graph.
+        return tetrahedra;
+    }
 
+    public static HashSet<Edge> uniqueEdgesOf(List<Tetrahedron> tetrahedra) {
         HashSet<Edge> edgeSet = new HashSet<>();
 
         for (Tetrahedron t : tetrahedra) {
@@ -121,15 +127,30 @@ public class Delaunay3D {
             edgeSet.add(new Edge(t.d(), t.b()));
             edgeSet.add(new Edge(t.d(), t.c()));
         }
-
-        // Get rid of the tetrahedra that have the vertices of the big tetrahedron - now we don't have those points in
-        // our graph.
-        edgeSet.removeIf(edge -> edge.hasAny(p1, p2, p3, p4)); // TODO Maybe don't add them in the first place
-        // Return all the unique edges
         return edgeSet;
     }
 
     public static boolean almostEqual(Vec3d vec1, Vec3d vec2) {
         return vec1.subtract(vec2).squaredDistanceTo(0, 0, 0) < 0.01;
+    }
+
+    /**
+     * Checks that a collection of tetrahedra is Delaunay, meaning that it contains all vertices specified
+     * and that each tetrahedron does not contain a point that it is not made of.
+     */
+    public static boolean isDelaunay(Collection<Tetrahedron> tetrahedra, Set<Vec3d> vertices) {
+        Set<Vec3d> unusedVertices = new HashSet<>(vertices);
+        Set<Vec3d> usedVertices = new HashSet<>();
+        for (Tetrahedron t : tetrahedra) {
+            for (Vec3d vertex : vertices) {
+                if (t.hasVertex(vertex)) {
+                    unusedVertices.remove(vertex);
+                    usedVertices.add(vertex);
+                    continue;
+                }
+                if (t.circumsphereContains(vertex)) return false;
+            }
+        }
+        return unusedVertices.isEmpty() && usedVertices.containsAll(vertices);
     }
 }
