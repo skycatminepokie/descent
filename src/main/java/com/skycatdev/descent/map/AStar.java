@@ -5,6 +5,7 @@ import com.skycatdev.descent.utils.Utils;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.random.Random;
 import org.apache.commons.lang3.NotImplementedException;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.map_templates.BlockBounds;
 
@@ -60,23 +61,37 @@ public class AStar {
                     .orElseThrow(() -> new ConcurrentModificationException("open set was not empty, but there was nothing in it?"));
             open.remove(parent);
 
-            Stream<DungeonPiece.Opening> openingStream;
-            if (parent.entrance() == null) { // First piece, only one valid opening
-                openingStream = Stream.of(entrance);
-            } else { // Any other piece, (openings - 1) valid openings
-                openingStream = parent.piece().openings().parallelStream().filter(opening -> !opening.equals(parent.entrance()));
+            // Find already placed pieces and add them to the open list as needed. Don't check for overlap of course.
+            List<Node> placedNodes = streamNodeOpenings(parent, entrance).<Node>mapMulti((opening, adder) -> {
+                for (DungeonPiece placedPath : placedPaths) {
+                    DungeonPiece.@Nullable Opening connected = placedPath.getConnected(opening);
+                    if (connected != null) {
+                        adder.accept(Node.calculate(opening, placedPath, parent, entrance, exit));
+                    }
+                }
+            })
+                    // Filter out ones we've already searched
+                    .filter(successor -> closed.stream().noneMatch(closedNode -> successor.piece().equivalentTo(closedNode.piece())))
+                    .sequential()
+                    .toList();
+            for (Node placedNode : placedNodes) {
+                if (placedNode.piece().isConnected(exit)) {
+                    List<DungeonPiece> path = new LinkedList<>();
+                    placedNode.iterateUp().iterator().forEachRemaining(node -> path.add(node.piece()));
+                    path.remove(start); // Could've avoided this by making it null for the root node, but that was gonna be annoying
+                    return path;
+                }
             }
+            open.addAll(placedNodes);
 
             // Generate successors
-            var protos = openingStream.flatMap(opening -> pieces.stream().flatMap(piece -> piece.matchedWith(opening))) // Place all possible pieces next to each opening
+            var protos = streamNodeOpenings(parent, entrance).flatMap(opening -> pieces.stream().flatMap(piece -> piece.matchedWith(opening))) // Place all possible pieces next to each opening
                     // Don't intersect already-placed pieces
                     .filter(proto -> base.parallelStream().noneMatch(baseBound -> proto.piece().dungeonBounds().intersects(baseBound)))
                     // Don't intersect ancestors
                     .filter(proto -> parent.streamPath().map(Node::piece)
                             .map(DungeonPiece::dungeonBounds)
                             .noneMatch(ancestorBounds -> proto.piece().dungeonBounds().intersects(ancestorBounds)))
-                    // Iterate already placed
-                    .<ProtoNode>mapMulti((proto, adder) -> addAlreadyPlaced(placedPaths, proto, adder))
                     .toList();
 
             for (var proto : protos) {
@@ -87,6 +102,8 @@ public class AStar {
                     path.remove(start); // Could've avoided this by making it null for the root node, but that was gonna be annoying
                     return path;
                 }
+
+                // Skip if in closed (already searched this)
                 boolean skip = false;
                 for (Node closedNode : closed) {
                     if (proto.piece().equivalentTo(closedNode.piece())) {
@@ -105,6 +122,23 @@ public class AStar {
         }
 
         throw new NoSolutionException("Ran out of options to check.");
+    }
+
+    private static void addAlreadyPlaced(Collection<DungeonPiece> placedPaths, DungeonPiece.Opening opening, Node parent, Consumer<Node> adder, DungeonPiece.Opening pathEntrance, DungeonPiece.Opening pathExit) {
+        for (DungeonPiece placedPath : placedPaths) {
+            DungeonPiece.@Nullable Opening connected = placedPath.getConnected(opening);
+            if (connected != null) {
+                adder.accept(Node.calculate(opening, placedPath, parent, pathEntrance, pathExit));
+            }
+        }
+    }
+
+    private static @NotNull Stream<DungeonPiece.Opening> streamNodeOpenings(Node parent, DungeonPiece.Opening pathEntrance) {
+        if (parent.entrance() == null) { // First piece, only one valid opening
+            return Stream.of(pathEntrance);
+        } else { // Any other piece, (openings - 1) valid openings
+            return parent.piece().openings().parallelStream().filter(opening -> !opening.equals(parent.entrance()));
+        }
     }
 
     private static void replaceSlower(Collection<Node> replaceFrom, Node successor) {
@@ -169,17 +203,21 @@ public class AStar {
             this(parent, piece, entrance, distFromStart, heuristic, distFromStart + heuristic);
         }
 
-        public static Node fromProto(ProtoNode proto, Node parent, DungeonPiece.Opening pathEntrance, DungeonPiece.Opening pathExit) {
+        public static Node calculate(DungeonPiece.Opening opening, DungeonPiece piece, Node parent, DungeonPiece.Opening pathEntrance, DungeonPiece.Opening pathExit) {
             DungeonPiece.Opening parentEntrance = parent.entrance() != null ? parent.entrance() : pathEntrance;
 
-            int distFromStart = parent.distFromStart() + proto.opening().center().getManhattanDistance(parentEntrance.center());
-            int heuristic = parent.estPathLength() + proto.opening().center().getManhattanDistance(pathExit.center());
+            int distFromStart = parent.distFromStart() + opening.center().getManhattanDistance(parentEntrance.center());
+            int heuristic = parent.estPathLength() + opening.center().getManhattanDistance(pathExit.center());
 
             return new Node(parent,
-                    proto.piece(),
-                    proto.opening(),
+                    piece,
+                    opening,
                     distFromStart,
                     heuristic);
+        }
+
+        public static Node fromProto(ProtoNode proto, Node parent, DungeonPiece.Opening pathEntrance, DungeonPiece.Opening pathExit) {
+            return calculate(proto.opening(), proto.piece(), parent, pathEntrance, pathExit);
         }
 
         public Stream<Node> streamPath() {
