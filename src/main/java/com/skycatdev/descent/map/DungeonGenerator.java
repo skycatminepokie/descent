@@ -54,12 +54,24 @@ public class DungeonGenerator {
         }
 
         Set<Edge> allEdges = Delaunay3D.triangulate(centers);
+//        Set<Edge> allEdges = new HashSet<>();
+//
+//        for (int i = 0; i < centers.size(); i++) {
+//            Vec3d a = centers.get(i);
+//            for (int j = i + 1; j < centers.size(); j++) {
+//                allEdges.add(new Edge(a, centers.get(j)));
+//            }
+//        }
 
         if (Descent.LOGGER.isTraceEnabled()) {
             Descent.LOGGER.trace("Delaunay edge dump: \n{}", Utils.makeEdgeDump(allEdges));
         }
 
         Set<Edge> resultingEdges = Prim.minimumSpanningTree(allEdges, centers.get(random.nextBetween(0, centers.size() - 1)));
+
+        if (Descent.LOGGER.isTraceEnabled()) {
+            Descent.LOGGER.trace("Prim edge dump: \n{}", Utils.makeEdgeDump(resultingEdges));
+        }
 
         for (Edge edge : allEdges) {
             // TODO: 10 is the constant that can be tweaked (chance of path being added back)

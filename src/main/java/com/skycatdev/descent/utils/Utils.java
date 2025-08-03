@@ -102,10 +102,14 @@ public class Utils {
 
         while (points.hasNext()) {
             Vec3d center = points.next();
-            pointsStr.append(String.format("p_{%d}=(%d,%d,%d)\n", i, (int) Math.ceil(center.getX()), (int) Math.ceil(center.getY()), (int) Math.ceil(center.getZ())));
-            line.append("p_{");
-            line.append(i);
-            line.append("},");
+            pointsStr.append("p_{")
+                    .append(i)
+                    .append("}=")
+                    .append(center)
+                    .append('\n');
+            line.append("p_{")
+                    .append(i)
+                    .append("},");
             i++;
         }
         line.deleteCharAt(line.length() - 1);
