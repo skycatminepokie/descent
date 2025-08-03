@@ -21,7 +21,7 @@ public class Delaunay3D {
          For each vertex, find all tetrahedra that contain it. Break those down into triangles.
          Then, construct tetrahedra from those triangles and the vertex - we just split the big tetrahedron into a ton
          of tetrahedra, none of which contain one of the vertices.
-         Get rid of the tetrahedra that have the vertices of the big tetrahedron - now we don't have those points in
+         Get rid of the *EDGES* (not tetrahedra) that have the vertices of the big tetrahedron - now we don't have those points in
          our graph. Finally, return all the unique edges.
         */
 
@@ -39,38 +39,53 @@ public class Delaunay3D {
                     new Edge(vertices.getLast(), vertices.getFirst()));
         }
 
-        return uniqueEdgesOf(tetrahedralize(vertices));
+        Tetrahedron enclosing = createSuperTetrahedron(vertices);
+
+        HashSet<Edge> edges = uniqueEdgesOf(tetrahedralize(vertices, enclosing));
+        edges.removeIf(edge -> edge.hasAny(enclosing.a(), enclosing.b(), enclosing.c(), enclosing.d()));
+        return edges;
     }
 
-    public static List<Tetrahedron> tetrahedralize(Collection<Vec3d> vertices) {
+    /**
+     * Create a "super tetrahedron" that encloses all the given points
+     */
+    public static Tetrahedron createSuperTetrahedron(List<Vec3d> points) {
         // Find bounds
         double minX, minY, minZ;
         minX = minY = minZ = Double.MAX_VALUE;
         double maxX, maxY, maxZ;
         maxX = maxY = maxZ = Double.MIN_VALUE;
 
-        for (Vec3d vertex : vertices) {
-            if (vertex.getX() < minX) minX = vertex.getX();
-            if (vertex.getX() > maxX) maxX = vertex.getX();
-            if (vertex.getY() < minY) minY = vertex.getY();
-            if (vertex.getY() > maxY) maxY = vertex.getY();
-            if (vertex.getZ() < minZ) minZ = vertex.getZ();
-            if (vertex.getZ() > maxZ) maxZ = vertex.getZ();
+        for (Vec3d point : points) {
+            if (point.getX() < minX) minX = point.getX();
+            if (point.getX() > maxX) maxX = point.getX();
+            if (point.getY() < minY) minY = point.getY();
+            if (point.getY() > maxY) maxY = point.getY();
+            if (point.getZ() < minZ) minZ = point.getZ();
+            if (point.getZ() > maxZ) maxZ = point.getZ();
         }
 
         double dx = maxX - minX;
         double dy = maxY - minY;
         double dz = maxZ - minZ;
-        double deltaMax = Math.max(dx, Math.max(dy, dz)) * 2; // Biggest side of bounds
+        double deltaMax = Math.max(dx, Math.max(dy, dz)); // Biggest side of bounds TODO: need *2?
 
-        Vec3d p1 = new Vec3d(minX - deltaMax, minY - deltaMax, minZ - deltaMax);
-        Vec3d p2 = new Vec3d(maxX + deltaMax, minY - deltaMax, minZ - deltaMax);
-        Vec3d p3 = new Vec3d(minX - deltaMax, maxY + deltaMax, minZ - deltaMax);
-        Vec3d p4 = new Vec3d(minX - deltaMax, minY - deltaMax, maxZ + deltaMax);
+        return new Tetrahedron(new Vec3d(minX - deltaMax, minY - deltaMax, minZ - deltaMax),
+                new Vec3d(maxX + deltaMax, minY - deltaMax, minZ - deltaMax),
+                new Vec3d(minX - deltaMax, maxY + deltaMax, minZ - deltaMax),
+                new Vec3d(minX - deltaMax, minY - deltaMax, maxZ + deltaMax));
+    }
+
+    /**
+     * Creates a Delaunay tetrahedralization of the given vertices and an enclosing super-tetrahedron.
+     * @param enclosing A super-tetrahedron that encloses all the vertices.
+     * @return A tetrahedralization of the given vertices and enclosing super-tetrahedron.
+     * @implSpec Does not remove tetrahedra that have points of the enclosing Tetrahedron.
+     */
+    public static List<Tetrahedron> tetrahedralize(Collection<Vec3d> vertices, Tetrahedron enclosing) {
 
         List<Tetrahedron> tetrahedra = new LinkedList<>();
-        // Make one big tetrahedron that encompasses it all
-        tetrahedra.add(new Tetrahedron(p1, p2, p3, p4));
+        tetrahedra.add(enclosing);
 
         // For each vertex, find all tetrahedra that contain it
         for (Vec3d vertex : vertices) {
@@ -107,16 +122,13 @@ public class Delaunay3D {
             }
         }
 
-        tetrahedra.removeIf(t -> t.hasVertex(p1) ||
-                                 t.hasVertex(p2) ||
-                                 t.hasVertex(p3) ||
-                                 t.hasVertex(p4));
-        // Get rid of the tetrahedra that have the vertices of the big tetrahedron - now we don't have those points in
-        // our graph.
         return tetrahedra;
     }
 
-    public static HashSet<Edge> uniqueEdgesOf(List<Tetrahedron> tetrahedra) {
+    /**
+     * Find all the unique edges of the given tetrahedra.
+     */
+    public static HashSet<Edge> uniqueEdgesOf(Collection<Tetrahedron> tetrahedra) {
         HashSet<Edge> edgeSet = new HashSet<>();
 
         for (Tetrahedron t : tetrahedra) {
@@ -138,7 +150,7 @@ public class Delaunay3D {
      * Checks that a collection of tetrahedra is Delaunay, meaning that it contains all vertices specified
      * and that each tetrahedron does not contain a point that it is not made of.
      */
-    public static boolean isDelaunay(Collection<Tetrahedron> tetrahedra, Set<Vec3d> vertices) {
+    public static boolean isDelaunay(Collection<Tetrahedron> tetrahedra, Collection<Vec3d> vertices) {
         Set<Vec3d> unusedVertices = new HashSet<>(vertices);
         Set<Vec3d> usedVertices = new HashSet<>();
         for (Tetrahedron t : tetrahedra) {

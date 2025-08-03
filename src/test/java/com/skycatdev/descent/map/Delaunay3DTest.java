@@ -122,12 +122,14 @@ public class Delaunay3DTest {
         Vec3d d = new Vec3d(2, 0, 0);
         Vec3d e = new Vec3d(1, 1, 1); // Point inside the bounding tetrahedron
 
-        Set<Vec3d> input = Set.of(a, b, c, d, e);
-        List<Tetrahedron> actual = Delaunay3D.tetrahedralize(input);
+        List<Vec3d> input = List.of(a, b, c, d, e);
+        Tetrahedron superTetrahedron = Delaunay3D.createSuperTetrahedron(input);
+        List<Tetrahedron> actual = Delaunay3D.tetrahedralize(input, superTetrahedron);
 
         Descent.LOGGER.info("Edge dump: \n{}", Utils.makeEdgeDump(Delaunay3D.uniqueEdgesOf(actual)));
 
-        assertThat(Delaunay3D.isDelaunay(actual, input))
+        List<Vec3d> finalGraph = List.of(a, b, c, d, e, superTetrahedron.a(), superTetrahedron.b(), superTetrahedron.c(), superTetrahedron.d());
+        assertThat(Delaunay3D.isDelaunay(actual, finalGraph))
                 .isTrue();
     }
 
