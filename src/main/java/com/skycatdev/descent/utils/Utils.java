@@ -84,6 +84,7 @@ public class Utils {
                     .append("},p_{")
                     .append(points.get(edge.v()))
                     .append("}\n");
+            e++;
         }
         return pointsStr.append(edgeStr)
                 .deleteCharAt(pointsStr.length() - 1)
