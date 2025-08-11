@@ -1,5 +1,7 @@
 package com.skycatdev.descent.map;
 
+import com.skycatdev.descent.Descent;
+import com.skycatdev.descent.utils.Utils;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.*;
@@ -68,7 +70,7 @@ public class Delaunay3D {
         double dx = maxX - minX;
         double dy = maxY - minY;
         double dz = maxZ - minZ;
-        double deltaMax = Math.max(dx, Math.max(dy, dz)); // Biggest side of bounds TODO: need *2?
+        double deltaMax = Math.max(dx, Math.max(dy, dz)) * 2; // Biggest side of bounds
 
         return new Tetrahedron(new Vec3d(minX - deltaMax, minY - deltaMax, minZ - deltaMax),
                 new Vec3d(maxX + deltaMax, minY - deltaMax, minZ - deltaMax),
@@ -87,8 +89,16 @@ public class Delaunay3D {
         List<Tetrahedron> tetrahedra = new LinkedList<>();
         tetrahedra.add(enclosing);
 
+        Collection<Vec3d> usedVertices = new HashSet<>();
+        usedVertices.add(enclosing.a());
+        usedVertices.add(enclosing.b());
+        usedVertices.add(enclosing.c());
+        usedVertices.add(enclosing.d());
+
+
         // For each vertex, find all tetrahedra that contain it
         for (Vec3d vertex : vertices) {
+            usedVertices.add(vertex);
             List<Triangle> triangles = new LinkedList<>();
 
             // Break those down into triangles
@@ -119,6 +129,11 @@ public class Delaunay3D {
             // Construct tetrahedra from those triangles and the vertex (we just split the tetrahedra into many smaller ones)
             for (Triangle triangle : triangles) {
                 tetrahedra.add(new Tetrahedron(triangle.getU(), triangle.getV(), triangle.getW(), vertex));
+            }
+
+            // TODO: debug only
+            if (!isDelaunay(tetrahedra, usedVertices)) {
+                Descent.LOGGER.info("Not delaunay! Edge dump: \n{}", Utils.makeEdgeDump(uniqueEdgesOf(tetrahedra)));
             }
         }
 

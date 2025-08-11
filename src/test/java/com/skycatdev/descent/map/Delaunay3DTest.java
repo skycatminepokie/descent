@@ -131,6 +131,7 @@ public class Delaunay3DTest {
         List<Vec3d> finalGraph = List.of(a, b, c, d, e, superTetrahedron.a(), superTetrahedron.b(), superTetrahedron.c(), superTetrahedron.d());
         assertThat(Delaunay3D.isDelaunay(actual, finalGraph))
                 .isTrue();
+        // TODO: Check all are connected
     }
 
 //    @Test
